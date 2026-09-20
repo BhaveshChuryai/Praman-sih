@@ -575,57 +575,93 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           3. PRAMAN AT A GLANCE (KPI Section)
           ═══════════════════════════════════════════════════════════════ */}
-      <section id="praman-at-a-glance" className="bg-white py-12 sm:py-16 border-b border-[#E2E8F0]">
+      <section id="praman-at-a-glance" className="bg-white py-12 sm:py-14 border-b border-[#E2E8F0]">
         <div className="max-w-[1360px] mx-auto px-4 sm:px-8">
           {/* Section Header */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#0A2540] tracking-tight">
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#0B2A5B] tracking-tight">
                 PRAMAN AT A GLANCE
               </h2>
-              <p className="text-sm text-[#475569] mt-1.5 max-w-xl leading-relaxed">
+              <p className="text-sm text-[#475569] max-w-xl leading-relaxed font-normal">
                 A live view of the problems, solutions and outcomes moving through the PRAMAN ecosystem.
               </p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#16834B] animate-pulse" />
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#DCFCE7]/70 border border-[#16834B]/20">
+                <span className="w-2 h-2 rounded-full bg-[#16834B] animate-pulse shrink-0" />
                 <span className="text-xs font-bold text-[#16834B]">Live Platform Data</span>
               </div>
-              <Link href="/dashboard" className="text-xs font-bold text-[#1D4ED8] hover:text-[#0A2540] flex items-center gap-1 transition-colors">
-                View All Insights <ArrowRight size={12} />
+              <Link
+                href="/dashboard"
+                className="text-xs font-bold text-[#1D4ED8] hover:text-[#0B2A5B] flex items-center gap-1.5 transition-colors group"
+              >
+                <span>View All Insights</span>
+                <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
           </div>
 
           {/* KPI Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-3.5 items-stretch">
             {kpiMetrics.map((kpi, idx) => {
+              const isCurrency = kpi.value.includes("₹");
               const inner = (
                 <div
-                  key={idx}
-                  className={`bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col gap-3 transition-all hover:shadow-md hover:border-[#CBD5E1] ${kpi.link ? "cursor-pointer" : ""} group`}
+                  className={`h-full bg-white border border-[#E2E8F0] rounded-xl p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-200 hover:shadow-md hover:border-[#CBD5E1] hover:-translate-y-0.5 group ${
+                    kpi.link ? "cursor-pointer" : ""
+                  }`}
                   title={kpi.trend}
                 >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${kpi.color}12` }}>
-                    <span style={{ color: kpi.color }}>{kpi.icon}</span>
+                  {/* Top Region: Icon, Value, Label */}
+                  <div className="flex flex-col">
+                    {/* 1. ICON AREA (Uniform 38x38px box, top aligned) */}
+                    <div
+                      className="w-[38px] h-[38px] rounded-lg flex items-center justify-center mb-3 transition-transform group-hover:scale-105 shrink-0"
+                      style={{ backgroundColor: `${kpi.color}12` }}
+                    >
+                      <span style={{ color: kpi.color }} className="flex items-center justify-center">
+                        {kpi.icon}
+                      </span>
+                    </div>
+
+                    {/* 2. VALUE AREA (Consistent height zone, single-line currency) */}
+                    <div className="h-8 flex items-baseline overflow-hidden">
+                      <p
+                        className={`font-black text-[#0B2A5B] tracking-tight leading-none ${
+                          isCurrency ? "text-[18px] sm:text-[19px] whitespace-nowrap" : "text-2xl sm:text-[26px]"
+                        }`}
+                      >
+                        {kpi.value}
+                      </p>
+                    </div>
+
+                    {/* 3. LABEL AREA (Fixed height zone so all 8 cards align) */}
+                    <div className="h-[32px] sm:h-[34px] flex items-start mt-1.5 overflow-hidden">
+                      <p className="text-[10.5px] font-bold text-[#475569] uppercase tracking-wider leading-[1.3]">
+                        {kpi.label}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-black text-[#0A2540] leading-none tracking-tight">{kpi.value}</p>
-                    <p className="text-[10px] font-bold text-[#475569] uppercase tracking-wider mt-1.5 leading-tight">{kpi.label}</p>
-                  </div>
-                  <div className="flex items-center gap-1 mt-auto">
-                    <TrendingUp size={10} className="text-[#16834B]" />
-                    <span className="text-[9px] text-[#16834B] font-semibold">{kpi.trend}</span>
+
+                  {/* 4. TREND / STATUS AREA (Anchored to bottom with clean divider) */}
+                  <div className="pt-2.5 mt-3 border-t border-[#F1F5F9] flex items-center gap-1.5 text-[#16834B]">
+                    <TrendingUp size={12} className="text-[#16834B] shrink-0" />
+                    <span className="text-[10px] sm:text-[10.5px] font-semibold leading-tight truncate">
+                      {kpi.trend}
+                    </span>
                   </div>
                 </div>
               );
+
               return kpi.link ? (
-                <Link key={idx} href={kpi.link} className="block">
+                <Link key={idx} href={kpi.link} className="block h-full">
                   {inner}
                 </Link>
               ) : (
-                <div key={idx}>{inner}</div>
+                <div key={idx} className="h-full">
+                  {inner}
+                </div>
               );
             })}
           </div>

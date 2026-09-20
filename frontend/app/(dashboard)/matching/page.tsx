@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { GovPageHeader, Panel, Empty, Action, AlertBanner, kpiTrace, OfficialRecordHeader, RecordMeta } from "@/components/ui";
 import { Badge } from "@/components/Badge";
 import {
   Target, Sparkles, CheckCircle2, Users, ShieldCheck, ArrowRight,
+  FileText, Building2, CalendarDays, Check, Landmark, X, Info, Upload, ChevronRight
 } from "lucide-react";
+import Link from "next/link";
 
 const CRITERIA = [
   { label: "Requirement Match",    weight: "30%", desc: "Alignment to structured government requirement" },
@@ -16,7 +19,11 @@ const CRITERIA = [
 ];
 
 export default function MatchingPage() {
-  const { requirement, recommendations, pilot, matchStartups, shortlist, loading, error, setTrace } = usePraman();
+  const { user, requirement, recommendations, pilot, matchStartups, shortlist, loading, error, setTrace } = usePraman();
+
+  if (user?.role === "startup") {
+    return <StartupApplicationsView user={user} />;
+  }
 
   const canMatch = requirement?.status === "Approved";
   const canShortlist = recommendations.length > 0 && !pilot;
@@ -248,3 +255,251 @@ export default function MatchingPage() {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   STARTUP APPLICATIONS DIRECTORY VIEW (For Authenticated Startups)
+   ═══════════════════════════════════════════════════════════════ */
+function StartupApplicationsView({ user }: { user: any }) {
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [filter, setFilter] = useState("All");
+
+  const applications = [
+    {
+      id: 1,
+      refId: "APP-MH-2026-1042",
+      opportunity: "Road Damage Detection using public transport telemetry",
+      department: "PWD Maharashtra",
+      domain: "Computer Vision & Edge AI",
+      location: "Pune Municipal Transport",
+      appliedOn: "10 Aug 2026",
+      status: "Selected for Pilot",
+      statusTone: "green",
+      nextAction: "Submit 30-Day Evidence",
+      link: "/pilots",
+      isDecision: false,
+    },
+    {
+      id: 2,
+      refId: "APP-MH-2026-1048",
+      opportunity: "Smart Waste Management Solution",
+      department: "Brihanmumbai Municipal Corporation",
+      domain: "IoT Sensors & Waste Logistics",
+      location: "Mumbai Suburban",
+      appliedOn: "05 Aug 2026",
+      status: "Under Review",
+      statusTone: "blue",
+      nextAction: "Upload Compliance Documents",
+      link: "/evidence",
+      isDecision: false,
+    },
+    {
+      id: 3,
+      refId: "APP-MH-2026-0891",
+      opportunity: "Traffic Analytics Platform",
+      department: "Pune Municipal Corporation",
+      domain: "Traffic Telemetry & Video Analytics",
+      location: "Pune Smart City",
+      appliedOn: "28 Jul 2026",
+      status: "Not Selected",
+      statusTone: "red",
+      nextAction: "View Official Decision",
+      link: null,
+      isDecision: true,
+    },
+  ];
+
+  const filtered = filter === "All" ? applications : applications.filter(a => a.status === filter);
+
+  return (
+    <div className="space-y-6 min-w-0">
+      <GovPageHeader
+        eyebrow="Startup Portal · Applications"
+        title="My Applications Directory"
+        subtitle="Track submitted proposals, government verification gates, and official evaluation notices."
+        actions={
+          <Link
+            href="/problems"
+            className="bg-[#0B2A5B] hover:bg-[#061727] text-white text-xs font-bold py-2 px-3.5 rounded flex items-center gap-1.5 shadow-sm transition-colors"
+          >
+            <FileText size={14} />
+            <span>Browse Open Challenges</span>
+          </Link>
+        }
+      />
+
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-[#D9E1EA] pb-3">
+        {["All", "Selected for Pilot", "Under Review", "Not Selected"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
+              filter === tab
+                ? "bg-[#0B2A5B] text-white"
+                : "bg-white text-[#5E6B7E] hover:bg-slate-100 border border-[#D9E1EA]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Applications Table */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-[#D9E1EA] bg-[#F8FAFC]">
+          <h2 className="text-sm font-bold text-[#172033]">Submitted Innovation Proposals ({filtered.length})</h2>
+          <p className="text-[11px] text-[#5E6B7E]">Official verification and decision status for your entity</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="gov-table">
+            <thead>
+              <tr>
+                <th style={{ width: 36 }}>#</th>
+                <th>Application Reference</th>
+                <th>Opportunity / Challenge</th>
+                <th>Department</th>
+                <th>Applied Date</th>
+                <th>Status</th>
+                <th>Next Action</th>
+                <th style={{ textAlign: "right" }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((app) => (
+                <tr key={app.id}>
+                  <td className="font-bold text-[#5E6B7E]">{app.id}</td>
+                  <td>
+                    <span className="font-mono text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] px-2 py-0.5 rounded border border-[#BFDBFE]">
+                      {app.refId}
+                    </span>
+                  </td>
+                  <td>
+                    <p className="font-bold text-[#172033] text-xs">{app.opportunity}</p>
+                    <p className="text-[10px] text-[#5E6B7E] mt-0.5">{app.domain} · {app.location}</p>
+                  </td>
+                  <td className="text-xs text-[#5E6B7E] whitespace-nowrap">{app.department}</td>
+                  <td className="text-xs text-[#5E6B7E] whitespace-nowrap font-mono">{app.appliedOn}</td>
+                  <td>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        app.statusTone === "green"
+                          ? "bg-[#DCFCE7] text-[#16834B] border border-[#BBF7D0]"
+                          : app.statusTone === "blue"
+                          ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]"
+                          : "bg-[#FEE2E2] text-[#DC2626] border border-[#FCA5A5]"
+                      }`}
+                    >
+                      {app.status}
+                    </span>
+                  </td>
+                  <td className="text-xs font-semibold text-[#172033] whitespace-nowrap">
+                    {app.nextAction}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {app.isDecision ? (
+                      <button
+                        onClick={() => setDecisionModalOpen(true)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-2.5 py-1 rounded border border-[#FECACA] transition-colors"
+                      >
+                        <span>View Decision</span>
+                      </button>
+                    ) : (
+                      <Link
+                        href={app.link || "/pilots"}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] px-2.5 py-1 rounded border border-[#BFDBFE] transition-colors"
+                      >
+                        <span>View Details</span>
+                        <ChevronRight size={12} />
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Decision Modal */}
+      {decisionModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#0A2540]/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setDecisionModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg border border-[#D9E1EA] max-w-lg w-full shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#F8FAFC] px-6 py-4 border-b border-[#D9E1EA] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center text-[#DC2626]">
+                  <Landmark size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                    Official Decision Notice
+                  </p>
+                  <h3 className="text-sm font-black text-[#172033]">Application Not Selected</h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setDecisionModalOpen(false)}
+                className="p-1 text-[#5E6B7E] hover:text-[#172033] rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded bg-[#F8FAFC] border border-[#D9E1EA] space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Opportunity:</span>
+                  <span className="font-bold text-[#172033]">Traffic Analytics Platform</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Government Department:</span>
+                  <span className="font-bold text-[#172033]">Pune Municipal Corporation</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Date of Decision:</span>
+                  <span className="font-bold text-[#172033]">20 Sept 2026</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Official Decision:</span>
+                  <span className="font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-0.5 rounded border border-[#FECACA]">
+                    Not selected for this pilot
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-[#172033] mb-1.5">Official Reason for Decision:</p>
+                <div className="p-3.5 rounded bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs leading-relaxed font-medium">
+                  “The submitted solution did not sufficiently demonstrate the required municipal-scale deployment capability for this pilot.”
+                </div>
+              </div>
+
+              <div className="p-3 rounded bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] text-[#1D4ED8] flex items-start gap-2">
+                <Info size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  Official government communication issued by Pune Municipal Corporation in accordance with PRAMAN Innovation Procurement Rules.
+                </span>
+              </div>
+            </div>
+
+            <div className="px-6 py-3 bg-[#F8FAFC] border-t border-[#D9E1EA] flex justify-end">
+              <button
+                onClick={() => setDecisionModalOpen(false)}
+                className="bg-[#0B2A5B] text-white text-xs font-bold px-4 py-2 rounded hover:bg-[#061727] transition-colors"
+              >
+                Close Decision Notice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

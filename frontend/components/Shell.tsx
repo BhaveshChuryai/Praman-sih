@@ -67,16 +67,6 @@ const PRIMARY_NAV_GOV: NavLinkItem[] = [
     ],
   },
   {
-    label: "Innovation Hub",
-    href: "/innovation-hub",
-    subRoutes: ["/innovation-hub"],
-    dropdownItems: [
-      { label: "Government Challenges", href: "/innovation-hub", desc: "Open innovation challenges seeking solutions" },
-      { label: "Submit a Solution", href: "/innovation-hub?mode=submit", desc: "Respond to a government challenge" },
-      { label: "Review Queue", href: "/innovation-hub?mode=review", desc: "Submissions awaiting government review" },
-    ],
-  },
-  {
     label: "Pilot & Evidence",
     href: "/pilots",
     subRoutes: ["/pilots", "/evidence", "/analytics"],
@@ -84,6 +74,14 @@ const PRIMARY_NAV_GOV: NavLinkItem[] = [
       { label: "90-Day Sandbox Pilots", href: "/pilots", desc: "Controlled pilot telemetry & milestones" },
       { label: "Evidence Locker & Hashing", href: "/evidence", desc: "Tamper-evident cryptographic verification" },
       { label: "Performance Analytics", href: "/analytics", desc: "KPI telemetry & outcome analytics" },
+    ],
+  },
+  {
+    label: "Financial Milestones",
+    href: "/financial-milestones",
+    subRoutes: ["/financial-milestones"],
+    dropdownItems: [
+      { label: "Milestone Plan & Tracking", href: "/financial-milestones", desc: "Case-linked financial progress & releases" },
     ],
   },
   {
@@ -108,78 +106,59 @@ const PRIMARY_NAV_GOV: NavLinkItem[] = [
       { label: "Decision Replay Audit", href: "/replay", desc: "Historical decision step simulation" },
     ],
   },
-  {
-    label: "Institutional Memory",
-    href: "/memory",
-    subRoutes: ["/memory", "/lessons", "/implementation", "/monitoring"],
-    dropdownItems: [
-      { label: "Institutional Memory Bank", href: "/memory", desc: "Searchable procurement repository" },
-      { label: "Lessons Learned Registry", href: "/lessons", desc: "Departmental insights & post-mortems" },
-      { label: "Implementation Tracking", href: "/implementation", desc: "Post-procurement rollout milestones" },
-      { label: "Continuous Monitoring", href: "/monitoring", desc: "Ongoing SLA & performance telemetry" },
-    ],
-  },
 ];
 
 const PRIMARY_NAV_STARTUP: NavLinkItem[] = [
   { label: "Home", href: "/dashboard", subRoutes: ["/dashboard"] },
   {
-    label: "Open Challenges",
+    label: "Opportunities",
     href: "/problems",
-    subRoutes: ["/problems"],
+    subRoutes: ["/problems", "/problems/intake", "/innovation-hub"],
     dropdownItems: [
-      { label: "Browse Challenges", href: "/problems", desc: "Explore open government challenges" },
-    ],
-  },
-  {
-    label: "Innovation Hub",
-    href: "/innovation-hub",
-    subRoutes: ["/innovation-hub"],
-    dropdownItems: [
-      { label: "Browse Challenges", href: "/innovation-hub", desc: "Discover open government challenges" },
-      { label: "Submit Solution", href: "/innovation-hub?mode=submit", desc: "Submit your innovation" },
+      { label: "Government Challenges", href: "/problems", desc: "Browse open public sector challenges" },
+      { label: "Innovation Hub", href: "/innovation-hub", desc: "Submit innovations & explore challenges" },
     ],
   },
   {
     label: "My Applications",
     href: "/matching",
-    badge: "Active",
+    badge: "3 Active",
     subRoutes: ["/matching"],
     dropdownItems: [
-      { label: "Matching & Status", href: "/matching", desc: "View evaluation and TOPSIS rank" },
+      { label: "Application Status", href: "/matching", desc: "Track submitted proposals & decisions" },
     ],
   },
   {
-    label: "Active Pilots",
+    label: "Evidence",
+    href: "/evidence",
+    badge: "2 Action",
+    subRoutes: ["/evidence"],
+    dropdownItems: [
+      { label: "Evidence Submissions", href: "/evidence", desc: "Pre-pilot compliance & pilot verification docs" },
+    ],
+  },
+  {
+    label: "My Pilots",
     href: "/pilots",
     subRoutes: ["/pilots"],
     dropdownItems: [
-      { label: "Sandbox Pilot Workspace", href: "/pilots", desc: "Submit telemetry & view milestones" },
+      { label: "Sandbox Pilot Workspace", href: "/pilots", desc: "Telemetry tracking, deliverables & milestones" },
     ],
   },
   {
-    label: "Evidence Locker",
-    href: "/evidence",
-    subRoutes: ["/evidence"],
+    label: "Outcomes",
+    href: "/outcomes",
+    subRoutes: ["/outcomes"],
     dropdownItems: [
-      { label: "Evidence Submissions", href: "/evidence", desc: "Upload and verify proof of performance" },
+      { label: "Government Evaluations", href: "/outcomes", desc: "Final outcome & procurement recommendations" },
     ],
   },
   {
-    label: "Readiness Assessment",
-    href: "/readiness",
-    subRoutes: ["/readiness"],
+    label: "My Profile",
+    href: "/settings",
+    subRoutes: ["/settings"],
     dropdownItems: [
-      { label: "Readiness Score", href: "/readiness", desc: "View procurement qualification score" },
-    ],
-  },
-  {
-    label: "Institutional Memory",
-    href: "/memory",
-    subRoutes: ["/memory", "/lessons"],
-    dropdownItems: [
-      { label: "Knowledge Base", href: "/memory", desc: "Prior solutions and reference specs" },
-      { label: "Lessons Learned", href: "/lessons", desc: "Guidelines for procurement success" },
+      { label: "Startup Profile", href: "/settings", desc: "Entity info, capabilities & certifications" },
     ],
   },
 ];

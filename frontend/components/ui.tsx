@@ -148,7 +148,7 @@ export function WorkflowBreadcrumb({
 export function Panel({
   title, icon, children, className = "", action, badge, accent,
 }: {
-  title: string;
+  title: React.ReactNode;
   icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;

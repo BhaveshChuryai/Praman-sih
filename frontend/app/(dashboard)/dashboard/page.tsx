@@ -13,7 +13,9 @@ import {
   TrendingUp, FileText, ListChecks, ShieldCheck, Package, Circle,
   ChevronRight, ArrowRight, AlertTriangle, Database, Activity,
   Gauge, GitBranch, LineChart, Award, Compass, ShieldAlert, ArrowUpRight,
-  Layers, Clock, Filter, Grid, List, Table as TableIcon, ExternalLink
+  Layers, Clock, Filter, Grid, List, Table as TableIcon, ExternalLink,
+  Building2, MapPin, CalendarDays, Upload, X, Landmark, Check,
+  MessageSquare, FolderCheck, FlaskConical, ChartNoAxesColumn, FileCheck2, Info, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,11 +36,16 @@ const WORKFLOW_STAGES = [
 export default function DashboardPage() {
   const router = useRouter();
   const {
+    user,
     problem, requirement, recommendations, pilot, readiness, decision, handoff,
     health, loading, error, currentStage, audit,
     launchDemo, structure, approve, matchStartups, shortlist, fastForward, calculateReadiness,
     implementation, monitoring, riskRadar,
   } = usePraman();
+
+  if (user?.role === "startup") {
+    return <StartupDashboard user={user} problem={problem} pilot={pilot} />;
+  }
 
   const [selectedStage, setSelectedStage] = useState("All Stages");
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
@@ -602,3 +609,584 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRAMAN STARTUP PORTAL DASHBOARD COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
+function StartupDashboard({ user, problem, pilot }: { user: any; problem: any; pilot: any }) {
+  const router = useRouter();
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+
+  const startupName = user?.name || "EcoVision Technologies";
+  const entityId = user?.startup_id || "DPIIT-MH-2026-9021";
+
+  // Application list data
+  const applications = [
+    {
+      id: 1,
+      opportunity: "Road Damage Detection using public transport telemetry",
+      department: "PWD Maharashtra",
+      appliedOn: "10 Aug 2026",
+      status: "Selected for Pilot",
+      statusTone: "green",
+      nextAction: "Submit Evidence",
+      link: "/pilots",
+      isDecision: false,
+    },
+    {
+      id: 2,
+      opportunity: "Smart Waste Management Solution",
+      department: "Brihanmumbai Municipal Corporation",
+      appliedOn: "05 Aug 2026",
+      status: "Under Review",
+      statusTone: "blue",
+      nextAction: "Upload Compliance",
+      link: "/evidence",
+      isDecision: false,
+    },
+    {
+      id: 3,
+      opportunity: "Traffic Analytics Platform",
+      department: "Pune Municipal Corporation",
+      appliedOn: "28 Jul 2026",
+      status: "Not Selected",
+      statusTone: "red",
+      nextAction: "View Decision",
+      link: null,
+      isDecision: true,
+    },
+  ];
+
+  // Journey steps
+  const journeySteps = [
+    { num: 1, title: "Opportunity", desc: "Browse & apply to government challenges", state: "done" },
+    { num: 2, title: "Application", desc: "Submit technical & commercial proposal", state: "done" },
+    { num: 3, title: "Evidence & Verification", desc: "Provide requested documents & benchmarks", state: "active" },
+    { num: 4, title: "Pilot", desc: "Execute 90-day sandbox pilot under oversight", state: "in-progress" },
+    { num: 5, title: "Outcome", desc: "View government evaluation & procurement recommendation", state: "upcoming" },
+  ];
+
+  return (
+    <div className="space-y-6 min-w-0">
+      {/* ── Startup Portal Header ── */}
+      <GovPageHeader
+        eyebrow="PRAMAN · Startup Portal"
+        title={`Good morning, ${startupName}`}
+        subtitle="Track your applications, submit evidence and manage your government pilots."
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#16834B] bg-[#DCFCE7] px-3 py-1 rounded border border-[#BBF7D0]">
+              <ShieldCheck size={13} />
+              <span>DPIIT Verified: {entityId}</span>
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] px-3 py-1 rounded border border-[#BFDBFE]">
+              <TestTube2 size={13} />
+              <span>Active Pilot Participant</span>
+            </span>
+          </div>
+        }
+      />
+
+      {/* ── 4 Useful Summary Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+        {/* Total Applications */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm border-t-4 border-t-[#0B2A5B] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#5E6B7E]">Total Applications</span>
+              <FileText size={16} className="text-[#0B2A5B]" />
+            </div>
+            <p className="text-2xl font-black text-[#172033] mt-2">3</p>
+            <p className="text-[11px] text-[#5E6B7E] mt-0.5">2 Under Review · 1 Selected</p>
+          </div>
+          <div className="pt-3 border-t border-[#D9E1EA] mt-3">
+            <Link href="/matching" className="text-xs font-bold text-[#0B2A5B] hover:underline inline-flex items-center gap-1">
+              <span>View all applications</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Evidence Required */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm border-t-4 border-t-[#D97706] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B45309]">Evidence Required</span>
+              <FolderCheck size={16} className="text-[#D97706]" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <p className="text-2xl font-black text-[#B45309]">2</p>
+              <span className="text-[10px] font-bold bg-[#FEF3C7] text-[#B45309] px-2 py-0.5 rounded border border-[#FDE68A]">
+                Action Needed
+              </span>
+            </div>
+            <p className="text-[11px] text-[#5E6B7E] mt-0.5">1 Pilot Report · 1 Compliance Doc</p>
+          </div>
+          <div className="pt-3 border-t border-[#D9E1EA] mt-3">
+            <Link href="/evidence" className="text-xs font-bold text-[#D97706] hover:underline inline-flex items-center gap-1">
+              <span>Take action</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Active Pilot */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm border-t-4 border-t-[#16834B] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#16834B]">Active Pilot</span>
+              <FlaskConical size={16} className="text-[#16834B]" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-2">
+              <p className="text-2xl font-black text-[#16834B]">1</p>
+              <span className="text-[10px] font-bold bg-[#DCFCE7] text-[#16834B] px-2 py-0.5 rounded border border-[#BBF7D0]">
+                In Sandbox
+              </span>
+            </div>
+            <p className="text-[11px] text-[#5E6B7E] mt-0.5">Day 42 of 90 · PWD Maharashtra</p>
+          </div>
+          <div className="pt-3 border-t border-[#D9E1EA] mt-3">
+            <Link href="/pilots" className="text-xs font-bold text-[#16834B] hover:underline inline-flex items-center gap-1">
+              <span>View pilot workspace</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Completed Pilots */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm border-t-4 border-t-[#64748B] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#5E6B7E]">Completed Pilots</span>
+              <Award size={16} className="text-[#64748B]" />
+            </div>
+            <p className="text-2xl font-black text-[#172033] mt-2">1</p>
+            <p className="text-[11px] text-[#5E6B7E] mt-0.5">Procurement Recommended</p>
+          </div>
+          <div className="pt-3 border-t border-[#D9E1EA] mt-3">
+            <Link href="/outcomes" className="text-xs font-bold text-[#64748B] hover:underline inline-flex items-center gap-1">
+              <span>View outcomes</span>
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── ACTION REQUIRED (Most Important Section) ── */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg p-5 shadow-sm border-l-4 border-l-[#D97706]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#D9E1EA]">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-[#D97706]" />
+            <h2 className="text-sm font-black uppercase tracking-wider text-[#172033]">Action Required</h2>
+          </div>
+          <span className="text-xs font-bold text-[#B45309] bg-[#FEF3C7] px-2.5 py-0.5 rounded border border-[#FDE68A]">
+            2 Submissions Pending
+          </span>
+        </div>
+
+        <div className="divide-y divide-[#D9E1EA] mt-2">
+          {/* Action Item 1 */}
+          <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-[#172033]">Submit 30-Day Pilot Report</span>
+                <span className="text-[10px] font-bold text-[#B45309] bg-[#FEF3C7] px-2 py-0.5 rounded">
+                  Due: 24 Sept 2026
+                </span>
+              </div>
+              <p className="text-xs text-[#5E6B7E]">
+                Road Damage Detection using public transport telemetry · <span className="font-semibold text-[#172033]">PWD Maharashtra</span>
+              </p>
+            </div>
+            <Link
+              href="/evidence"
+              className="inline-flex items-center gap-1.5 bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-bold px-4 py-2 rounded shadow-sm transition-colors shrink-0"
+            >
+              <Upload size={13} />
+              <span>Submit Evidence →</span>
+            </Link>
+          </div>
+
+          {/* Action Item 2 */}
+          <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-[#172033]">Upload Compliance Documents</span>
+                <span className="text-[10px] font-bold text-[#1D4ED8] bg-[#EFF6FF] px-2 py-0.5 rounded">
+                  Due: 30 Sept 2026
+                </span>
+              </div>
+              <p className="text-xs text-[#5E6B7E]">
+                Smart Waste Management Solution · <span className="font-semibold text-[#172033]">Brihanmumbai Municipal Corporation</span>
+              </p>
+            </div>
+            <Link
+              href="/evidence"
+              className="inline-flex items-center gap-1.5 bg-[#0B2A5B] hover:bg-[#061727] text-white text-xs font-bold px-4 py-2 rounded shadow-sm transition-colors shrink-0"
+            >
+              <Upload size={13} />
+              <span>Upload Documents →</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Dashboard Layout: Applications + Active Pilot + Journey ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 min-w-0">
+        
+        {/* Left Column: My Applications + Journey */}
+        <div className="space-y-6 min-w-0">
+          
+          {/* MY APPLICATIONS TABLE */}
+          <div className="bg-white border border-[#D9E1EA] rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-[#D9E1EA] flex items-center justify-between bg-[#F8FAFC]">
+              <div>
+                <h2 className="text-sm font-bold text-[#172033]">My Applications</h2>
+                <p className="text-[11px] text-[#5E6B7E]">Official status of your submitted government innovation proposals</p>
+              </div>
+              <Link href="/matching" className="text-xs font-bold text-[#0B2A5B] hover:underline">
+                View All
+              </Link>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="gov-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 36 }}>#</th>
+                    <th>Opportunity</th>
+                    <th>Department</th>
+                    <th>Applied On</th>
+                    <th>Current Status</th>
+                    <th>Next Action</th>
+                    <th style={{ textAlign: "right" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applications.map((app) => (
+                    <tr key={app.id}>
+                      <td className="font-bold text-[#5E6B7E]">{app.id}</td>
+                      <td>
+                        <p className="font-bold text-[#172033] text-xs">{app.opportunity}</p>
+                      </td>
+                      <td className="text-xs text-[#5E6B7E] whitespace-nowrap">{app.department}</td>
+                      <td className="text-xs text-[#5E6B7E] whitespace-nowrap font-mono">{app.appliedOn}</td>
+                      <td>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            app.statusTone === "green"
+                              ? "bg-[#DCFCE7] text-[#16834B] border border-[#BBF7D0]"
+                              : app.statusTone === "blue"
+                              ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]"
+                              : "bg-[#FEE2E2] text-[#DC2626] border border-[#FCA5A5]"
+                          }`}
+                        >
+                          {app.status}
+                        </span>
+                      </td>
+                      <td className="text-xs font-semibold text-[#172033] whitespace-nowrap">
+                        {app.nextAction}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {app.isDecision ? (
+                          <button
+                            onClick={() => setDecisionModalOpen(true)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#DC2626] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-2.5 py-1 rounded border border-[#FECACA] transition-colors"
+                          >
+                            <span>View Decision</span>
+                          </button>
+                        ) : (
+                          <Link
+                            href={app.link || "/pilots"}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] px-2.5 py-1 rounded border border-[#BFDBFE] transition-colors"
+                          >
+                            <span>View</span>
+                            <ChevronRight size={12} />
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* YOUR JOURNEY ON PRAMAN */}
+          <div className="bg-white border border-[#D9E1EA] rounded-lg p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-[#172033] mb-1">Your Journey on PRAMAN</h2>
+            <p className="text-[11px] text-[#5E6B7E] mb-4">Standard milestone progression for public sector procurement</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {journeySteps.map((step) => (
+                <div
+                  key={step.num}
+                  className={`p-3 rounded-md border flex flex-col justify-between ${
+                    step.state === "done"
+                      ? "bg-[#F0FDF4] border-[#BBF7D0]"
+                      : step.state === "active"
+                      ? "bg-[#EFF6FF] border-[#BFDBFE] ring-2 ring-[#1236B8]/20"
+                      : step.state === "in-progress"
+                      ? "bg-[#FFFBEB] border-[#FDE68A]"
+                      : "bg-[#F8FAFC] border-[#E2E8F0]"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold uppercase text-[#5E6B7E]">Step {step.num}</span>
+                      {step.state === "done" ? (
+                        <Check size={13} className="text-[#16834B]" />
+                      ) : step.state === "active" ? (
+                        <span className="w-2 h-2 rounded-full bg-[#1236B8] animate-pulse" />
+                      ) : null}
+                    </div>
+                    <p className="text-xs font-bold text-[#172033] leading-snug">{step.title}</p>
+                    <p className="text-[10px] text-[#5E6B7E] mt-1 leading-tight">{step.desc}</p>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-black/5 text-[9px] font-bold uppercase tracking-wider">
+                    {step.state === "done" && <span className="text-[#16834B]">Completed ✓</span>}
+                    {step.state === "active" && <span className="text-[#1236B8]">Current Step</span>}
+                    {step.state === "in-progress" && <span className="text-[#B45309]">In Sandbox</span>}
+                    {step.state === "upcoming" && <span className="text-[#94A3B8]">Upcoming</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Active Pilot Details + Official Communications */}
+        <div className="space-y-6">
+          
+          {/* MY ACTIVE PILOT */}
+          <div className="bg-white border border-[#D9E1EA] rounded-lg p-5 shadow-sm border-t-4 border-t-[#16834B]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#D9E1EA]">
+              <div className="flex items-center gap-2">
+                <FlaskConical size={16} className="text-[#16834B]" />
+                <h2 className="text-sm font-bold text-[#172033]">My Active Pilot</h2>
+              </div>
+              <span className="text-[10px] font-bold text-[#16834B] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#BBF7D0]">
+                Day 42 / 90
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              <div>
+                <p className="text-xs font-bold text-[#172033]">Road Damage Detection</p>
+                <div className="flex flex-wrap gap-2 text-[11px] text-[#5E6B7E] mt-1">
+                  <span>PWD Maharashtra</span>
+                  <span>·</span>
+                  <span>Computer Vision</span>
+                </div>
+                <p className="text-[10px] font-mono text-[#5E6B7E] mt-0.5">01 Sept 2026 — 30 Nov 2026</p>
+              </div>
+
+              {/* Progress Gauge */}
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-[11px] font-semibold text-[#5E6B7E]">Pilot Timeline</span>
+                  <span className="text-[11px] font-black text-[#16834B]">47% Elapsed</span>
+                </div>
+                <div className="w-full bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#16834B] to-[#22C55E] h-full rounded-full" style={{ width: "47%" }} />
+                </div>
+              </div>
+
+              {/* Pilot Stages */}
+              <div className="pt-2 border-t border-[#D9E1EA]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#5E6B7E] mb-2">Pilot Progression</p>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[#16834B] font-semibold">
+                    <span className="flex items-center gap-1.5"><Check size={12} /> Pilot Setup</span>
+                    <span className="text-[10px]">Complete</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#16834B] font-semibold">
+                    <span className="flex items-center gap-1.5"><Check size={12} /> Deployment</span>
+                    <span className="text-[10px]">Complete</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#1236B8] font-bold bg-[#EFF6FF] px-2 py-1 rounded">
+                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#1236B8]" /> Data Collection</span>
+                    <span className="text-[10px] uppercase">Current</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#94A3B8]">
+                    <span className="flex items-center gap-1.5"><Circle size={10} /> Evaluation</span>
+                    <span className="text-[10px]">Pending</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[#94A3B8]">
+                    <span className="flex items-center gap-1.5"><Circle size={10} /> Government Review</span>
+                    <span className="text-[10px]">Pending</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deliverables Checklist */}
+              <div className="pt-2 border-t border-[#D9E1EA]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#5E6B7E] mb-2">Deliverables</p>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#172033] font-medium">Pilot Deployment</span>
+                    <span className="text-[10px] font-bold text-[#16834B]">✓ Complete</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#172033] font-medium">Initial Dataset</span>
+                    <span className="text-[10px] font-bold text-[#16834B]">✓ Submitted</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#172033] font-medium">30-Day Evaluation Report</span>
+                    <Link href="/evidence" className="text-[10px] font-bold text-[#D97706] hover:underline">
+                      Submit Now →
+                    </Link>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#94A3B8]">Final Evaluation</span>
+                    <span className="text-[10px] text-[#94A3B8]">Pending</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#D9E1EA]">
+                <Link
+                  href="/pilots"
+                  className="block w-full text-center bg-[#0B2A5B] hover:bg-[#061727] text-white text-xs font-bold py-2 rounded shadow-sm transition-colors"
+                >
+                  View Pilot Details →
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* OFFICIAL COMMUNICATIONS */}
+          <div className="bg-white border border-[#D9E1EA] rounded-lg p-5 shadow-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-[#D9E1EA]">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={16} className="text-[#0B2A5B]" />
+                <h2 className="text-sm font-bold text-[#172033]">Official Messages</h2>
+              </div>
+              <span className="text-[10px] font-bold text-[#0B2A5B] bg-[#EEF5FC] px-2 py-0.5 rounded border border-[#BFDBFE]">
+                1 Unread
+              </span>
+            </div>
+
+            <div className="divide-y divide-[#D9E1EA] mt-2 text-xs">
+              <div className="py-2.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#172033]">PWD Maharashtra</span>
+                  <span className="text-[10px] text-[#8A96A8]">Today, 10:30 AM</span>
+                </div>
+                <p className="font-semibold text-[#0B2A5B] text-[11px]">Request for additional deployment details</p>
+                <p className="text-[11px] text-[#5E6B7E] line-clamp-2">
+                  Please upload camera calibration telemetry schema ahead of the 30-day evaluation milestone.
+                </p>
+              </div>
+
+              <div className="py-2.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#172033]">PRAMAN Support</span>
+                  <span className="text-[10px] text-[#8A96A8]">15 Sept 2026</span>
+                </div>
+                <p className="font-semibold text-[#172033] text-[11px]">Application selected for Sandbox Pilot</p>
+                <p className="text-[11px] text-[#5E6B7E] line-clamp-2">
+                  Proposal PRB-MH-2026-1042 has been officially selected for 90-day sandbox pilot deployment.
+                </p>
+              </div>
+
+              <div className="py-2.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#172033]">Pune Municipal Corporation</span>
+                  <span className="text-[10px] text-[#8A96A8]">20 Sept 2026</span>
+                </div>
+                <p className="font-semibold text-[#172033] text-[11px]">Official Decision Notice: Traffic Analytics</p>
+                <p className="text-[11px] text-[#5E6B7E] line-clamp-2">
+                  Official communication regarding proposal evaluation for Traffic Analytics challenge.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── APPLICATION REJECTION DECISION MODAL (Section 8) ── */}
+      {decisionModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#0A2540]/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setDecisionModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg border border-[#D9E1EA] max-w-lg w-full shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-[#F8FAFC] px-6 py-4 border-b border-[#D9E1EA] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center text-[#DC2626]">
+                  <Landmark size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                    Official Decision Notice
+                  </p>
+                  <h3 className="text-sm font-black text-[#172033]">Application Not Selected</h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setDecisionModalOpen(false)}
+                className="p-1 text-[#5E6B7E] hover:text-[#172033] rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded bg-[#F8FAFC] border border-[#D9E1EA] space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Opportunity:</span>
+                  <span className="font-bold text-[#172033]">Traffic Analytics Platform</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Government Department:</span>
+                  <span className="font-bold text-[#172033]">Pune Municipal Corporation</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Date of Decision:</span>
+                  <span className="font-bold text-[#172033]">20 Sept 2026</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5E6B7E]">Official Decision:</span>
+                  <span className="font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-0.5 rounded border border-[#FECACA]">
+                    Not selected for this pilot
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-[#172033] mb-1.5">Official Reason for Decision:</p>
+                <div className="p-3.5 rounded bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-xs leading-relaxed font-medium">
+                  “The submitted solution did not sufficiently demonstrate the required municipal-scale deployment capability for this pilot.”
+                </div>
+              </div>
+
+              <div className="p-3 rounded bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] text-[#1D4ED8] flex items-start gap-2">
+                <Info size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  Official government communication issued by Pune Municipal Corporation in accordance with PRAMAN Innovation Procurement Rules.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 bg-[#F8FAFC] border-t border-[#D9E1EA] flex justify-end">
+              <button
+                onClick={() => setDecisionModalOpen(false)}
+                className="bg-[#0B2A5B] text-white text-xs font-bold px-4 py-2 rounded hover:bg-[#061727] transition-colors"
+              >
+                Close Decision Notice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

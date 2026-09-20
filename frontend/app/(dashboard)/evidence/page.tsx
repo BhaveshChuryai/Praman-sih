@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { Panel, Empty, VerificationBadge, GovPageHeader } from "@/components/ui";
 import { Badge } from "@/components/Badge";
-import { FileCheck2, ShieldCheck, CheckCircle2, AlertTriangle, Hash } from "lucide-react";
+import {
+  FileCheck2, ShieldCheck, CheckCircle2, AlertTriangle, Hash,
+  Upload, FolderCheck, FileText, Check, Clock, Eye, AlertCircle, X, Shield, Landmark, FlaskConical
+} from "lucide-react";
 
 const EVIDENCE_DATA = [
   {
@@ -87,7 +91,11 @@ const CAT_STYLES: Record<string, React.CSSProperties> = {
 };
 
 export default function EvidencePage() {
-  const { pilot } = usePraman();
+  const { user, pilot } = usePraman();
+
+  if (user?.role === "startup") {
+    return <StartupEvidenceView user={user} />;
+  }
   const hasEvidence = (pilot?.kpis?.length ?? 0) > 0;
 
   const verified = EVIDENCE_DATA.filter(e => e.verificationLevel === "VERIFIED").length;
@@ -234,3 +242,348 @@ export default function EvidencePage() {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   STARTUP EVIDENCE REPOSITORY VIEW (Sections 13 & 14)
+   ═══════════════════════════════════════════════════════════════ */
+function StartupEvidenceView({ user }: { user: any }) {
+  const [activeTab, setActiveTab] = useState<"pre-pilot" | "pilot">("pilot");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedUploadItem, setSelectedUploadItem] = useState<any>(null);
+  const [uploadedToast, setUploadedToast] = useState(false);
+
+  // Pre-Pilot Evidence
+  const prePilotEvidence = [
+    {
+      id: "PRE-01",
+      title: "Company Registration Certificate (DPIIT)",
+      opportunity: "Smart Waste Management Solution",
+      department: "Brihanmumbai Municipal Corporation",
+      category: "Registration & Legal",
+      status: "Verified",
+      statusTone: "green",
+      uploadedDate: "05 Aug 2026",
+      action: "View Document",
+    },
+    {
+      id: "PRE-02",
+      title: "ISO 27001 / SOC 2 Security Compliance",
+      opportunity: "Smart Waste Management Solution",
+      department: "Brihanmumbai Municipal Corporation",
+      category: "Compliance & Security",
+      status: "Evidence Required",
+      statusTone: "amber",
+      uploadedDate: "—",
+      action: "Upload Document",
+    },
+    {
+      id: "PRE-03",
+      title: "Technical System Architecture & Data Schema",
+      opportunity: "Road Damage Detection",
+      department: "PWD Maharashtra",
+      category: "Technical Architecture",
+      status: "Verified",
+      statusTone: "green",
+      uploadedDate: "12 Aug 2026",
+      action: "View Document",
+    },
+  ];
+
+  // Pilot Evidence
+  const [pilotEvidenceList, setPilotEvidenceList] = useState([
+    {
+      id: "PIL-01",
+      title: "30-Day Pilot Evaluation Report",
+      opportunity: "Road Damage Detection",
+      department: "PWD Maharashtra",
+      category: "Evaluation Report",
+      status: "Evidence Required",
+      statusTone: "amber",
+      uploadedDate: "—",
+      dueDate: "24 Sept 2026",
+      action: "Upload Report",
+    },
+    {
+      id: "PIL-02",
+      title: "Initial 500km Public Transport Telemetry Dataset",
+      opportunity: "Road Damage Detection",
+      department: "PWD Maharashtra",
+      category: "Dataset & Telemetry",
+      status: "Verified",
+      statusTone: "green",
+      uploadedDate: "10 Sept 2026",
+      dueDate: "Completed",
+      action: "View Dataset",
+    },
+    {
+      id: "PIL-03",
+      title: "Edge AI Accuracy & False Positive Verification Logs",
+      opportunity: "Road Damage Detection",
+      department: "PWD Maharashtra",
+      category: "KPI Results",
+      status: "Under Review",
+      statusTone: "blue",
+      uploadedDate: "18 Sept 2026",
+      dueDate: "Under Assessment",
+      action: "View Logs",
+    },
+  ]);
+
+  function handleOpenUpload(item: any) {
+    setSelectedUploadItem(item);
+    setUploadModalOpen(true);
+  }
+
+  function handleSimulateUpload() {
+    if (selectedUploadItem) {
+      setPilotEvidenceList(prev => prev.map(p => p.id === selectedUploadItem.id ? { ...p, status: "Under Review", statusTone: "blue", action: "View Submitted" } : p));
+    }
+    setUploadModalOpen(false);
+    setUploadedToast(true);
+    setTimeout(() => setUploadedToast(false), 4000);
+  }
+
+  const currentList = activeTab === "pre-pilot" ? prePilotEvidence : pilotEvidenceList;
+  const filteredList = statusFilter === "All" ? currentList : currentList.filter(e => e.status === statusFilter);
+
+  return (
+    <div className="space-y-6 min-w-0">
+      <GovPageHeader
+        eyebrow="Startup Portal · Evidence Repository"
+        title="Evidence & Verification Hub"
+        subtitle="Submit proof of compliance, benchmark datasets, and milestone evaluation reports for government review."
+        recordId="EVID-STARTUP-MH"
+      />
+
+      {/* Success Toast */}
+      {uploadedToast && (
+        <div className="flex items-center gap-2.5 p-3 rounded-lg bg-[#DCFCE7] border border-[#BBF7D0] text-xs font-bold text-[#16834B] shadow-sm">
+          <CheckCircle2 size={16} />
+          <span>Evidence uploaded successfully. Submitted for nodal officer verification.</span>
+        </div>
+      )}
+
+      {/* Two Types of Evidence Distinction Banner (Section 13) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          onClick={() => { setActiveTab("pilot"); setStatusFilter("All"); }}
+          className={`p-4 rounded-lg border text-left transition-all ${
+            activeTab === "pilot"
+              ? "bg-white border-[#1236B8] ring-2 ring-[#1236B8]/20 shadow-sm"
+              : "bg-[#F8FAFC] border-[#D9E1EA] hover:bg-white"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#172033] flex items-center gap-1.5">
+              <FlaskConical size={15} className="text-[#1236B8]" />
+              Type B: Pilot Performance Evidence
+            </span>
+            <span className="text-[10px] font-bold bg-[#DCFCE7] text-[#16834B] px-2 py-0.5 rounded">
+              Active Sandbox
+            </span>
+          </div>
+          <p className="text-[11px] text-[#5E6B7E] mt-1">
+            Telemetry datasets, 30-day evaluation reports, and accuracy logs to prove pilot outcome.
+          </p>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab("pre-pilot"); setStatusFilter("All"); }}
+          className={`p-4 rounded-lg border text-left transition-all ${
+            activeTab === "pre-pilot"
+              ? "bg-white border-[#1236B8] ring-2 ring-[#1236B8]/20 shadow-sm"
+              : "bg-[#F8FAFC] border-[#D9E1EA] hover:bg-white"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#172033] flex items-center gap-1.5">
+              <FolderCheck size={15} className="text-[#0B2A5B]" />
+              Type A: Pre-Pilot Compliance & Verification
+            </span>
+            <span className="text-[10px] font-bold bg-[#EFF6FF] text-[#1D4ED8] px-2 py-0.5 rounded">
+              Proposal Verification
+            </span>
+          </div>
+          <p className="text-[11px] text-[#5E6B7E] mt-1">
+            Entity registration, certifications, compliance documents, and system architecture specs.
+          </p>
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#D9E1EA] pb-3">
+        <div className="flex items-center gap-2">
+          {["All", "Evidence Required", "Under Review", "Verified"].map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
+                statusFilter === st
+                  ? "bg-[#0B2A5B] text-white"
+                  : "bg-white text-[#5E6B7E] hover:bg-slate-100 border border-[#D9E1EA]"
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Evidence Table */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-[#D9E1EA] bg-[#F8FAFC] flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-[#172033]">
+              {activeTab === "pilot" ? "Pilot Deliverables & Evidence" : "Pre-Pilot Compliance Records"} ({filteredList.length})
+            </h2>
+            <p className="text-[11px] text-[#5E6B7E]">
+              {activeTab === "pilot"
+                ? "Evaluates whether the 90-day sandbox pilot met agreed technical KPI targets"
+                : "Used by government committees to verify startup credentials and compliance"}
+            </p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="gov-table">
+            <thead>
+              <tr>
+                <th style={{ width: 40 }}>#</th>
+                <th>Evidence Title</th>
+                <th>Opportunity</th>
+                <th>Department</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th style={{ textAlign: "right" }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((item, idx) => (
+                <tr key={item.id}>
+                  <td className="font-bold text-[#5E6B7E]">{idx + 1}</td>
+                  <td>
+                    <p className="font-bold text-xs text-[#172033]">{item.title}</p>
+                    <span className="font-mono text-[10px] text-[#5E6B7E]">{item.id}</span>
+                  </td>
+                  <td className="text-xs text-[#5E6B7E]">{item.opportunity}</td>
+                  <td className="text-xs text-[#5E6B7E] whitespace-nowrap">{item.department}</td>
+                  <td>
+                    <span className="text-[10px] font-semibold text-[#172033] bg-[#F1F5F9] px-2 py-0.5 rounded">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        item.statusTone === "green"
+                          ? "bg-[#DCFCE7] text-[#16834B] border border-[#BBF7D0]"
+                          : item.statusTone === "blue"
+                          ? "bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]"
+                          : "bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A]"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {item.status === "Evidence Required" ? (
+                      <button
+                        onClick={() => handleOpenUpload(item)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#D97706] hover:bg-[#B45309] px-3 py-1.5 rounded shadow-sm transition-colors"
+                      >
+                        <Upload size={12} />
+                        <span>Upload</span>
+                      </button>
+                    ) : (
+                      <button
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] px-3 py-1.5 rounded border border-[#BFDBFE] transition-colors"
+                      >
+                        <Eye size={12} />
+                        <span>View</span>
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Upload Evidence Modal */}
+      {uploadModalOpen && selectedUploadItem && (
+        <div
+          className="fixed inset-0 z-50 bg-[#0A2540]/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setUploadModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg border border-[#D9E1EA] max-w-lg w-full shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#F8FAFC] px-6 py-4 border-b border-[#D9E1EA] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center text-[#1236B8]">
+                  <Upload size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#1236B8]">
+                    Evidence Submission
+                  </p>
+                  <h3 className="text-sm font-black text-[#172033]">Upload Required Evidence</h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setUploadModalOpen(false)}
+                className="p-1 text-[#5E6B7E] hover:text-[#172033] rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 rounded bg-[#F8FAFC] border border-[#D9E1EA] space-y-1.5">
+                <p className="text-[11px] text-[#5E6B7E]">Item:</p>
+                <p className="font-bold text-sm text-[#172033]">{selectedUploadItem.title}</p>
+                <p className="text-[11px] text-[#5E6B7E]">{selectedUploadItem.opportunity} · {selectedUploadItem.department}</p>
+              </div>
+
+              <div className="border-2 border-dashed border-[#BFDBFE] rounded-lg p-6 text-center bg-[#EFF6FF]/40">
+                <Upload size={24} className="mx-auto text-[#1236B8] mb-2" />
+                <p className="font-bold text-xs text-[#172033]">Click to select PDF or telemetry ZIP file</p>
+                <p className="text-[10px] text-[#5E6B7E] mt-1">Accepted formats: PDF, XLSX, CSV, ZIP (Max 50MB)</p>
+                <span className="inline-block mt-3 text-[10px] font-bold bg-white text-[#1236B8] px-3 py-1 rounded border border-[#BFDBFE] shadow-sm">
+                  Choose File
+                </span>
+              </div>
+
+              <div className="p-3 rounded bg-[#FFFBEB] border border-[#FDE68A] text-[11px] text-[#92400E] flex items-start gap-2">
+                <AlertCircle size={14} className="shrink-0 mt-0.5 text-[#D97706]" />
+                <span>
+                  Uploaded files will be cryptographically hashed (SHA-256) and verified by the designated departmental evaluation officer.
+                </span>
+              </div>
+            </div>
+
+            <div className="px-6 py-3 bg-[#F8FAFC] border-t border-[#D9E1EA] flex justify-end gap-2">
+              <button
+                onClick={() => setUploadModalOpen(false)}
+                className="bg-white border border-[#D9E1EA] text-[#5E6B7E] hover:bg-slate-50 text-xs font-bold px-4 py-2 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSimulateUpload}
+                className="bg-[#16834B] hover:bg-[#15803D] text-white text-xs font-bold px-4 py-2 rounded shadow-sm transition-colors flex items-center gap-1.5"
+              >
+                <Check size={14} />
+                <span>Confirm & Submit Evidence</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
