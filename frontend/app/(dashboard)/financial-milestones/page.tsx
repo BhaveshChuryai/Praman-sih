@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { GovPageHeader, Panel } from "@/components/ui";
 import {
@@ -9,119 +9,406 @@ import {
   CalendarDays, X, Landmark, Target, TrendingUp, Check,
   Layers, ShieldAlert, Sparkles, AlertCircle, ArrowUpRight,
   Download, Filter, RotateCcw, BarChart3, PieChart as PieIcon,
-  ShieldCheck, FileText, CheckCircle, HelpCircle
+  ShieldCheck, FileText, CheckCircle, HelpCircle, Search,
+  ChevronDown, Info, ExternalLink, SlidersHorizontal, ArrowDownRight
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from "recharts";
+import Link from "next/link";
 
 /* ═══════════════════════════════════════════════════════════════
-   DEMO CASE & MILESTONE DEFINITIONS (Single Source of Truth)
+   TYPES & DATA MODELS
    ═══════════════════════════════════════════════════════════════ */
 
-const DEMO_CASE = {
-  id: "PRB-MH-2026-1042",
-  title: "Road damage detection using public transport telemetry",
-  department: "PWD Maharashtra",
-  location: "Pune District",
-  domain: "Computer Vision & Edge AI",
-  timeline: "90 Days",
-  totalValue: 10000000, // ₹1,00,00,000 (₹1 Cr)
-  currentStage: "Sandbox Pilot",
-  completedStages: 5, // 5 completed, currently on stage 6
-  totalStages: 9,
-};
+export type MilestoneStatus = "Completed" | "Released" | "Pending Approval" | "In Progress" | "Locked" | "Blocked";
 
-const LIFECYCLE_STAGES = [
-  { name: "Problem Intake", state: "Completed" },
-  { name: "Requirement Structuring", state: "Completed" },
-  { name: "Eligibility", state: "Completed" },
-  { name: "Startup Matching", state: "Completed" },
-  { name: "Explainable Ranking", state: "Completed" },
-  { name: "Sandbox Pilot", state: "Current" },
-  { name: "Evidence & KPI", state: "Action Required" },
-  { name: "Procurement Readiness", state: "Upcoming" },
-  { name: "Decision / Handoff", state: "Upcoming" },
-];
-
-type MilestoneStatus = "Completed" | "Released" | "Pending Approval" | "In Progress" | "Locked";
-
-type Milestone = {
+export type Milestone = {
   id: number;
-  stage: string;
+  stage: "Requirement" | "Pilot" | "Evidence" | "Procurement" | "Deployment";
   milestone: string;
   amount: number;
   trigger: string;
   status: MilestoneStatus;
+  lockedReason?: string;
+  prerequisites?: { name: string; status: "met" | "pending" | "missing" }[];
   conditions?: { text: string; met: boolean }[];
+  evidenceCount?: number;
 };
 
-const MILESTONES: Milestone[] = [
+export type ProcurementCase = {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  domain: string;
+  technology: string;
+  timeline: string;
+  financialYear: string;
+  status: "In Progress" | "Pending Approval" | "Completed" | "Blocked";
+  totalValue: number;
+  currentStage: string;
+  currentStageIndex: number;
+  milestones: Milestone[];
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPREHENSIVE MULTI-CASE DATASET
+   ═══════════════════════════════════════════════════════════════ */
+
+const PROCUREMENT_CASES: ProcurementCase[] = [
   {
-    id: 1,
-    stage: "Requirement",
-    milestone: "Requirement approved",
-    amount: 0,
-    trigger: "Government approval of structured requirement",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    stage: "Pilot",
-    milestone: "Pilot initiation",
-    amount: 1000000, // ₹10,00,000
-    trigger: "MoU signed & baseline telemetry started",
-    status: "Released",
-  },
-  {
-    id: 3,
-    stage: "Pilot",
-    milestone: "Mid-pilot evaluation (30 days)",
-    amount: 1500000, // ₹15,00,000
-    trigger: "30-day evaluation report + KPI ≥85%",
-    status: "Pending Approval",
-    conditions: [
-      { text: "Pilot started & telemetry streaming", met: true },
-      { text: "Pilot telemetry data received in cryptographic locker", met: true },
-      { text: "30-day preliminary evaluation completed", met: true },
-      { text: "KPI targets met (≥85% detection accuracy)", met: false },
-      { text: "Nodal Officer formal sign-off & release authorization", met: false },
+    id: "PRB-MH-2026-1042",
+    title: "Smart Road Condition Monitoring using public transport telemetry",
+    department: "PWD Maharashtra",
+    location: "Pune District",
+    domain: "Urban Infrastructure",
+    technology: "Computer Vision & Edge AI",
+    timeline: "90 Days",
+    financialYear: "FY 2026–27",
+    status: "In Progress",
+    totalValue: 10000000, // ₹1.00 Cr
+    currentStage: "Pilot & Evidence",
+    currentStageIndex: 4,
+    milestones: [
+      {
+        id: 1,
+        stage: "Requirement",
+        milestone: "Requirement Approval & Pilot MoU",
+        amount: 0,
+        trigger: "Government approval of structured requirement & baseline agreement",
+        status: "Completed",
+      },
+      {
+        id: 2,
+        stage: "Pilot",
+        milestone: "Pilot Initiation & Hardware Telemetry Setup",
+        amount: 1000000, // ₹10,00,000 (₹10L)
+        trigger: "MoU signed & baseline telemetry active on 45 buses",
+        status: "Released",
+        evidenceCount: 3,
+      },
+      {
+        id: 3,
+        stage: "Pilot",
+        milestone: "Mid-Pilot Evaluation (30 Days)",
+        amount: 1500000, // ₹15,00,000 (₹15L)
+        trigger: "30-day evaluation report + verified detection accuracy ≥85%",
+        status: "Pending Approval",
+        evidenceCount: 4,
+        conditions: [
+          { text: "Pilot telemetry streaming continuously from 45 municipal buses", met: true },
+          { text: "Cryptographic Evidence Locker verified raw logs (1.4M points)", met: true },
+          { text: "30-day preliminary evaluation report compiled", met: true },
+          { text: "Target detection accuracy validated (≥85% against ground truth)", met: false },
+          { text: "Procurement Officer formal milestone sign-off", met: false },
+        ],
+      },
+      {
+        id: 4,
+        stage: "Evidence",
+        milestone: "Final Pilot KPI Validation & Audit",
+        amount: 1500000, // ₹15,00,000 (₹15L)
+        trigger: "60-day final pilot telemetry + third-party CERT-In compliance audit",
+        status: "Locked",
+        lockedReason: "Mid-Pilot Evaluation (Milestone #3) has not yet been approved.",
+        prerequisites: [
+          { name: "30-Day Evaluation Approval", status: "pending" },
+          { name: "Continuous Telemetry Feed", status: "met" },
+          { name: "CERT-In Audit Clearance", status: "missing" },
+        ],
+      },
+      {
+        id: 5,
+        stage: "Procurement",
+        milestone: "Procurement Award & Contract Execution",
+        amount: 4000000, // ₹40,00,000 (₹40L)
+        trigger: "Readiness score ≥80/100 & authorized departmental procurement decision",
+        status: "Locked",
+        lockedReason: "Procurement Readiness & Handoff stage has not yet been completed.",
+        prerequisites: [
+          { name: "Technical Pilot Validation", status: "pending" },
+          { name: "Procurement Readiness ≥80%", status: "missing" },
+          { name: "Competent Authority Decision", status: "missing" },
+        ],
+      },
+      {
+        id: 6,
+        stage: "Deployment",
+        milestone: "Production Deployment & Fleet Handover",
+        amount: 2000000, // ₹20,00,000 (₹20L)
+        trigger: "Full fleet deployment across 500 vehicles & maintenance SLA handover",
+        status: "Locked",
+        lockedReason: "Procurement Award contract has not yet been executed.",
+        prerequisites: [
+          { name: "Commercial Contract Execution", status: "missing" },
+          { name: "State Data Center Integration", status: "missing" },
+        ],
+      },
     ],
   },
   {
-    id: 4,
-    stage: "Evidence",
-    milestone: "KPI validation",
-    amount: 1500000, // ₹15,00,000
-    trigger: "Final pilot report with verified KPIs",
-    status: "Locked",
+    id: "PRB-MH-2026-1043",
+    title: "Urban Water Leakage & Distribution Network Telemetry",
+    department: "Mumbai Municipal Corporation",
+    location: "Mumbai Suburban",
+    domain: "Water & Utilities",
+    technology: "Acoustic IoT Sensors & GIS",
+    timeline: "120 Days",
+    financialYear: "FY 2026–27",
+    status: "Pending Approval",
+    totalValue: 15000000, // ₹1.50 Cr
+    currentStage: "Requirement",
+    currentStageIndex: 1,
+    milestones: [
+      {
+        id: 1,
+        stage: "Requirement",
+        milestone: "Feasibility Sign-off & Zone Selection",
+        amount: 0,
+        trigger: "Departmental approval of pipeline network GIS maps & pilot zones",
+        status: "Completed",
+      },
+      {
+        id: 2,
+        stage: "Pilot",
+        milestone: "Acoustic Sensor Pod Deployment (Zone 1)",
+        amount: 2500000, // ₹25L
+        trigger: "Installation of 120 acoustic loggers across Bandra-Kurla pipelines",
+        status: "Pending Approval",
+        evidenceCount: 2,
+        conditions: [
+          { text: "GIS mapping of high-pressure distribution trunks completed", met: true },
+          { text: "Sensor vendor eligibility clearance verified", met: true },
+          { text: "Departmental water engineer site clearance", met: false },
+          { text: "Procurement Officer formal initiation sign-off", met: false },
+        ],
+      },
+      {
+        id: 3,
+        stage: "Evidence",
+        milestone: "Leak Localization Accuracy Benchmark",
+        amount: 3500000, // ₹35L
+        trigger: "Non-revenue water (NRW) loss reduction verification (≥18% saved)",
+        status: "Locked",
+        lockedReason: "Sensor deployment milestone is awaiting initiation approval.",
+        prerequisites: [
+          { name: "Sensor Pod Hardware Installation", status: "pending" },
+          { name: "SCADA Telemetry Integration", status: "missing" },
+        ],
+      },
+      {
+        id: 4,
+        stage: "Procurement",
+        milestone: "City-wide Pipeline Monitoring Contract",
+        amount: 6000000, // ₹60L
+        trigger: "GeM custom bid clearance & financial authorization",
+        status: "Locked",
+        lockedReason: "Pilot evidence and NRW benchmarks are not yet verified.",
+        prerequisites: [
+          { name: "Validated NRW Reduction Report", status: "missing" },
+          { name: "Municipal Commissioner Approval", status: "missing" },
+        ],
+      },
+      {
+        id: 5,
+        stage: "Deployment",
+        milestone: "SCADA Integration & Handover",
+        amount: 3000000, // ₹30L
+        trigger: "Full integration with central hydraulic control room",
+        status: "Locked",
+        lockedReason: "Procurement award pending.",
+        prerequisites: [
+          { name: "Central SCADA Handover", status: "missing" },
+        ],
+      },
+    ],
   },
   {
-    id: 5,
-    stage: "Procurement",
-    milestone: "Procurement award",
-    amount: 4000000, // ₹40,00,000
-    trigger: "Contract signing & compliance clearance",
-    status: "Locked",
+    id: "PRB-MH-2026-1044",
+    title: "IoT Smart Waste Logistics & Dynamic Bin Level Optimization",
+    department: "Nashik Municipal Corporation",
+    location: "Nashik City",
+    domain: "Solid Waste Management",
+    technology: "Ultrasonic IoT & Route Optimization",
+    timeline: "60 Days",
+    financialYear: "FY 2025–26",
+    status: "In Progress",
+    totalValue: 8000000, // ₹80L
+    currentStage: "Startup Matching",
+    currentStageIndex: 3,
+    milestones: [
+      {
+        id: 1,
+        stage: "Requirement",
+        milestone: "Ward Route Assessment & Requirement Freeze",
+        amount: 0,
+        trigger: "Sanitation department approval of 250 waste collection points",
+        status: "Completed",
+      },
+      {
+        id: 2,
+        stage: "Pilot",
+        milestone: "Pilot Hardware Deployment (Ward 4 & 7)",
+        amount: 1500000, // ₹15L
+        trigger: "Ultrasonic sensor pods installed on 250 community bins",
+        status: "Released",
+        evidenceCount: 3,
+      },
+      {
+        id: 3,
+        stage: "Evidence",
+        milestone: "Route Fuel Efficiency & Overflow Validation",
+        amount: 2000000, // ₹20L
+        trigger: "Demonstrated 20% fuel savings & <2hr bin overflow response",
+        status: "Pending Approval",
+        evidenceCount: 3,
+        conditions: [
+          { text: "Bin sensor telemetry logging live (>99% uptime)", met: true },
+          { text: "Dynamic vehicle dispatch integration active", met: true },
+          { text: "Sanitation inspector fuel log verification", met: true },
+          { text: "Zero overflow verification over 30 consecutive days", met: false },
+          { text: "Municipal Officer milestone release authorization", met: false },
+        ],
+      },
+      {
+        id: 4,
+        stage: "Procurement",
+        milestone: "City-wide Waste Fleet Rollout",
+        amount: 3000000, // ₹30L
+        trigger: "Council tender sanction and GeM procurement",
+        status: "Locked",
+        lockedReason: "30-day fuel efficiency verification is currently pending review.",
+        prerequisites: [
+          { name: "Verified Fuel Savings Audit", status: "pending" },
+          { name: "Nashik Sanitation Council Vote", status: "missing" },
+        ],
+      },
+      {
+        id: 5,
+        stage: "Deployment",
+        milestone: "Operations Command Center Handover",
+        amount: 1500000, // ₹15L
+        trigger: "Sanitation command dashboard operational sign-off",
+        status: "Locked",
+        lockedReason: "City-wide rollout contract pending.",
+        prerequisites: [
+          { name: "Fleet Integration", status: "missing" },
+        ],
+      },
+    ],
   },
   {
-    id: 6,
-    stage: "Deployment",
-    milestone: "Production deployment",
-    amount: 2000000, // ₹20,00,000
-    trigger: "Successful deployment & handover",
-    status: "Locked",
+    id: "PRB-MH-2026-1045",
+    title: "AI-Assisted Telemedicine Triage for Rural Primary Health Centers",
+    department: "Health & Family Welfare",
+    location: "Nagpur & Gadchiroli Districts",
+    domain: "Public Healthcare",
+    technology: "Clinical NLP & Edge Diagnostics",
+    timeline: "180 Days",
+    financialYear: "FY 2026–27",
+    status: "In Progress",
+    totalValue: 22000000, // ₹2.20 Cr
+    currentStage: "Pilot & Evidence",
+    currentStageIndex: 4,
+    milestones: [
+      {
+        id: 1,
+        stage: "Requirement",
+        milestone: "Clinical Protocol Formulation & Ethics Clearance",
+        amount: 0,
+        trigger: "State Health Directorate ethical clearance & PHC selection",
+        status: "Completed",
+      },
+      {
+        id: 2,
+        stage: "Pilot",
+        milestone: "PHC Diagnostic Hub Deployment (20 Centers)",
+        amount: 4000000, // ₹40L
+        trigger: "Tablets and diagnostic peripherals installed across 20 rural PHCs",
+        status: "Released",
+        evidenceCount: 5,
+      },
+      {
+        id: 3,
+        stage: "Pilot",
+        milestone: "Mid-Term Patient Triage Accuracy Review",
+        amount: 5000000, // ₹50L
+        trigger: "5,000 rural tele-consultations logged with ≥92% triage concordancy",
+        status: "Pending Approval",
+        evidenceCount: 6,
+        conditions: [
+          { text: "20 rural PHC diagnostic stations streaming telemetry", met: true },
+          { text: "5,000 encrypted patient triage records logged", met: true },
+          { text: "District Medical Officer blinded audit verification", met: true },
+          { text: "Triage concordancy score verified (≥92% accuracy)", met: false },
+          { text: "Health Secretary milestone release sign-off", met: false },
+        ],
+      },
+      {
+        id: 4,
+        stage: "Evidence",
+        milestone: "Clinical Safety & Referral Audit",
+        amount: 3000000, // ₹30L
+        trigger: "Zero missed critical triage events over 90-day evaluation",
+        status: "Locked",
+        lockedReason: "Mid-term triage accuracy review (Milestone #3) is pending.",
+        prerequisites: [
+          { name: "5,000 Consultation Review", status: "pending" },
+          { name: "Indian Council of Medical Research Audit", status: "missing" },
+        ],
+      },
+      {
+        id: 5,
+        stage: "Procurement",
+        milestone: "State-wide Telemedicine Scale-up Award",
+        amount: 7000000, // ₹70L
+        trigger: "Procurement readiness approval & National Health Mission co-funding",
+        status: "Locked",
+        lockedReason: "Clinical safety evidence is not yet finalized.",
+        prerequisites: [
+          { name: "Clinical Safety Report", status: "missing" },
+          { name: "NHM Sanction Order", status: "missing" },
+        ],
+      },
+      {
+        id: 6,
+        stage: "Deployment",
+        milestone: "District Hospital Tele-ICU Grid Integration",
+        amount: 3000000, // ₹30L
+        trigger: "Integration across 150 PHCs and 12 district hospitals",
+        status: "Locked",
+        lockedReason: "State-wide award pending execution.",
+        prerequisites: [
+          { name: "State Cloud Infrastructure Grid", status: "missing" },
+        ],
+      },
+    ],
   },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   FORMATTING & COLOR HELPERS
+   PRAMAN 9-STAGE LIFECYCLE LABELS
    ═══════════════════════════════════════════════════════════════ */
+const PRAMAN_LIFECYCLE_STEPS = [
+  "Problem Intake",
+  "Requirement",
+  "Eligibility",
+  "Startup Matching",
+  "Pilot & Evidence",
+  "Financial Milestones",
+  "Readiness & Decisions",
+  "Procurement",
+  "Scale & Reuse",
+];
 
+/* ═══════════════════════════════════════════════════════════════
+   CURRENCY & VALUE FORMATTERS
+   ═══════════════════════════════════════════════════════════════ */
 function formatINR(amount: number): string {
   if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
-  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)} L`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
   if (amount === 0) return "₹0";
   return `₹${amount.toLocaleString("en-IN")}`;
 }
@@ -133,38 +420,35 @@ function formatINRLakh(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
 }
 
-function statusBadgeStyle(status: MilestoneStatus): { bg: string; border: string; text: string; dot: string } {
+function getMilestoneStatusStyle(status: MilestoneStatus) {
   switch (status) {
     case "Completed":
     case "Released":
-      return { bg: "#F0FDF4", border: "#BBF7D0", text: "#15803D", dot: "#16834B" };
+      return { bg: "#DCFCE7", border: "#BBF7D0", text: "#16834B", dot: "#16834B" };
     case "Pending Approval":
-      return { bg: "#FFFBEB", border: "#FDE68A", text: "#B45309", dot: "#D97706" };
+      return { bg: "#FEF3C7", border: "#FDE68A", text: "#B45309", dot: "#D97706" };
     case "In Progress":
       return { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8", dot: "#2563EB" };
+    case "Blocked":
+      return { bg: "#FEE2E2", border: "#FECACA", text: "#DC2626", dot: "#DC2626" };
     case "Locked":
     default:
-      return { bg: "#F8FAFC", border: "#E2E8F0", text: "#64748B", dot: "#94A3B8" };
+      return { bg: "#F1F5F9", border: "#CBD5E1", text: "#64748B", dot: "#94A3B8" };
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   CUSTOM TOOLTIPS FOR CHARTS
+   CUSTOM TOOLTIPS FOR RECHARTS
    ═══════════════════════════════════════════════════════════════ */
-
 function CustomPieTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div style={{
-        background: "#0F172A", color: "#FFFFFF", padding: "8px 12px",
-        borderRadius: 6, fontSize: "0.74rem", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        border: "1px solid #334155"
-      }}>
-        <p style={{ margin: "0 0 2px", fontWeight: 700, color: data.payload.fill || "#FFFFFF" }}>
+      <div className="bg-[#0F172A] text-white p-2.5 rounded shadow-lg border border-[#334155] text-xs">
+        <p className="font-bold text-white mb-0.5" style={{ color: data.payload.fill || "#FFFFFF" }}>
           {data.name}
         </p>
-        <p style={{ margin: 0, fontWeight: 800 }}>
+        <p className="font-black text-sm">
           {formatINR(data.value)} ({data.payload.percentage}%)
         </p>
       </div>
@@ -177,15 +461,11 @@ function CustomReadinessTooltip({ active, payload }: { active?: boolean; payload
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div style={{
-        background: "#0F172A", color: "#FFFFFF", padding: "8px 12px",
-        borderRadius: 6, fontSize: "0.74rem", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        border: "1px solid #334155"
-      }}>
-        <p style={{ margin: "0 0 2px", fontWeight: 700, color: data.payload.fill || "#FFFFFF" }}>
+      <div className="bg-[#0F172A] text-white p-2.5 rounded shadow-lg border border-[#334155] text-xs">
+        <p className="font-bold mb-0.5" style={{ color: data.payload.fill || "#FFFFFF" }}>
           {data.name}
         </p>
-        <p style={{ margin: 0, fontWeight: 800 }}>
+        <p className="font-black text-sm">
           {data.value} {data.value === 1 ? "Milestone" : "Milestones"}
         </p>
       </div>
@@ -198,14 +478,10 @@ function CustomBarTooltip({ active, payload, label, mode }: { active?: boolean; 
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div style={{
-        background: "#0F172A", color: "#FFFFFF", padding: "8px 12px",
-        borderRadius: 6, fontSize: "0.74rem", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        border: "1px solid #334155"
-      }}>
-        <p style={{ margin: "0 0 2px", fontWeight: 700, color: "#93C5FD" }}>{label} Stage</p>
-        <p style={{ margin: 0, fontWeight: 800 }}>
-          {formatINR(data.rawAmount)} ({data.percentage}% of total)
+      <div className="bg-[#0F172A] text-white p-2.5 rounded shadow-lg border border-[#334155] text-xs">
+        <p className="font-bold text-[#93C5FD] mb-0.5">{label} Stage</p>
+        <p className="font-black text-sm">
+          {formatINR(data.rawAmount)} ({data.percentage}% of total plan)
         </p>
       </div>
     );
@@ -225,73 +501,115 @@ export default function FinancialMilestonesPage() {
     setMounted(true);
   }, []);
 
-  // Primary Case Context
-  const caseData = useMemo(() => {
-    if (problem) {
-      return {
-        id: problem.display_id || problem.id,
-        title: problem.title,
-        department: problem.department,
-        location: problem.location,
-        domain: problem.domain,
-        timeline: `${problem.timeline_days} Days`,
-        totalValue: DEMO_CASE.totalValue,
-        currentStage: DEMO_CASE.currentStage,
-        completedStages: DEMO_CASE.completedStages,
-        totalStages: DEMO_CASE.totalStages,
-      };
-    }
-    return DEMO_CASE;
-  }, [problem]);
-
-  // Filters state
-  const [selectedCase, setSelectedCase] = useState(caseData.id);
+  // ── Filters & Case Selection State ──────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCaseId, setSelectedCaseId] = useState("PRB-MH-2026-1042");
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
-  const [selectedFY, setSelectedFY] = useState("FY 2026–27");
-  const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [selectedFY, setSelectedFY] = useState("All Years");
+  const [selectedStatus, setSelectedStatus] = useState("All Statuses");
 
   // Fund Distribution Toggle: Amount vs Percentage
   const [distributionMode, setDistributionMode] = useState<"amount" | "percentage">("amount");
 
-  // Review & Approval Modal state
+  // Modals & Expandables
   const [approvalModal, setApprovalModal] = useState(false);
+  const [approvalTargetMilestone, setApprovalTargetMilestone] = useState<Milestone | null>(null);
   const [approvalDone, setApprovalDone] = useState(false);
   const [approvalAction, setApprovalAction] = useState<string | null>(null);
 
-  // Evidence view modal simulation
   const [evidenceModal, setEvidenceModal] = useState(false);
+  const [evidenceTargetMilestone, setEvidenceTargetMilestone] = useState<Milestone | null>(null);
   const [downloadToast, setDownloadToast] = useState(false);
 
-  // Derive Financial Calculations (Single Source of Truth)
+  // Expandable locked milestone explanation
+  const [expandedLockedId, setExpandedLockedId] = useState<number | null>(null);
+
+  // ── Multi-Case Filtering Logic ──────────────────────────────
+  const filteredCases = useMemo(() => {
+    return PROCUREMENT_CASES.filter((c) => {
+      // Search filter (Case ID, title, or department)
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        q === "" ||
+        c.id.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.department.toLowerCase().includes(q) ||
+        c.location.toLowerCase().includes(q);
+
+      // Department filter
+      const matchesDept =
+        selectedDepartment === "All Departments" || c.department === selectedDepartment;
+
+      // FY filter
+      const matchesFY =
+        selectedFY === "All Years" || c.financialYear === selectedFY;
+
+      // Status filter
+      const matchesStatus =
+        selectedStatus === "All Statuses" || c.status === selectedStatus;
+
+      return matchesSearch && matchesDept && matchesFY && matchesStatus;
+    });
+  }, [searchQuery, selectedDepartment, selectedFY, selectedStatus]);
+
+  // Keep selected case updated if filtered
+  const activeCase = useMemo(() => {
+    const found = filteredCases.find((c) => c.id === selectedCaseId);
+    if (found) return found;
+    return filteredCases[0] || PROCUREMENT_CASES[0];
+  }, [filteredCases, selectedCaseId]);
+
+  // Single source of truth: Milestones of the active case
+  const milestones = activeCase.milestones || [];
+
+  // Filtered Milestones within the table based on Status Filter (if specific milestone status chosen)
+  const displayedMilestones = useMemo(() => {
+    if (selectedStatus === "All Statuses" || selectedStatus === "In Progress") {
+      return milestones;
+    }
+    return milestones.filter((m) => m.status === selectedStatus);
+  }, [milestones, selectedStatus]);
+
+  // ── Financial Calculations (Derived strictly from activeCase) ─
+  const totalPlanned = activeCase.totalValue;
+
   const released = useMemo(() => {
-    return MILESTONES.filter((m) => m.status === "Released" || m.status === "Completed")
+    return milestones
+      .filter((m) => m.status === "Released" || m.status === "Completed")
       .reduce((sum, m) => sum + m.amount, 0);
-  }, []);
+  }, [milestones]);
 
-  const approvedNotReleased = 0; // ₹0 prototype baseline
+  const approvedNotReleased = 0; // Prototype baseline
 
-  const nextMilestone = useMemo(() => {
-    return MILESTONES.find((m) => m.status === "Pending Approval");
-  }, []);
+  const pendingMilestone = useMemo(() => {
+    return milestones.find((m) => m.status === "Pending Approval");
+  }, [milestones]);
 
-  const nextMilestoneAmount = nextMilestone ? nextMilestone.amount : 0;
-  const remainingValue = caseData.totalValue - released;
-  const remainingUncommitted = caseData.totalValue - (released + approvedNotReleased + nextMilestoneAmount);
+  const pendingAmount = pendingMilestone ? pendingMilestone.amount : 0;
 
-  const releasedPct = Math.round((released / caseData.totalValue) * 100);
-  const pendingPct = Math.round((nextMilestoneAmount / caseData.totalValue) * 100);
+  const lockedAmount = useMemo(() => {
+    return milestones
+      .filter((m) => m.status === "Locked" || m.status === "Blocked")
+      .reduce((sum, m) => sum + m.amount, 0);
+  }, [milestones]);
+
+  const remainingValue = totalPlanned - released;
+  const remainingUncommitted = Math.max(0, totalPlanned - (released + approvedNotReleased + pendingAmount));
+
+  const releasedPct = Math.round((released / totalPlanned) * 100);
+  const pendingPct = Math.round((pendingAmount / totalPlanned) * 100);
   const approvedPct = 0;
-  const remainingPct = Math.round((remainingUncommitted / caseData.totalValue) * 100);
+  const remainingPct = Math.max(0, 100 - releasedPct - pendingPct - approvedPct);
 
   // 1. Financial Progress Donut Data
   const financialProgressData = useMemo(() => [
     { name: "Released", value: released, percentage: releasedPct, fill: "#16834B" },
-    { name: "Approved / Not Released", value: approvedNotReleased, percentage: approvedPct, fill: "#3B82F6" },
-    { name: "Pending Approval", value: nextMilestoneAmount, percentage: pendingPct, fill: "#D97706" },
-    { name: "Remaining", value: remainingUncommitted, percentage: remainingPct, fill: "#CBD5E1" },
-  ], [released, approvedNotReleased, nextMilestoneAmount, remainingUncommitted, releasedPct, approvedPct, pendingPct, remainingPct]);
+    { name: "Approved / Ready", value: approvedNotReleased, percentage: approvedPct, fill: "#3B82F6" },
+    { name: "Pending Approval", value: pendingAmount, percentage: pendingPct, fill: "#D97706" },
+    { name: "Locked / Remaining", value: lockedAmount || remainingUncommitted, percentage: remainingPct, fill: "#CBD5E1" },
+  ], [released, approvedNotReleased, pendingAmount, lockedAmount, remainingUncommitted, releasedPct, approvedPct, pendingPct, remainingPct]);
 
-  // 2. Fund Distribution by Stage Data (Derived from Milestones)
+  // 2. Fund Distribution by Stage Data (Derived directly from current milestones)
   const fundDistributionData = useMemo(() => {
     const stageMap: { [key: string]: number } = {
       Requirement: 0,
@@ -301,7 +619,7 @@ export default function FinancialMilestonesPage() {
       Deployment: 0,
     };
 
-    MILESTONES.forEach(m => {
+    milestones.forEach((m) => {
       if (stageMap[m.stage] !== undefined) {
         stageMap[m.stage] += m.amount;
       }
@@ -312,61 +630,68 @@ export default function FinancialMilestonesPage() {
         stage: "Requirement",
         amountInLakh: stageMap.Requirement / 100000,
         rawAmount: stageMap.Requirement,
-        percentage: Math.round((stageMap.Requirement / caseData.totalValue) * 100),
-        displayVal: "₹0",
+        percentage: Math.round((stageMap.Requirement / totalPlanned) * 100),
+        displayVal: formatINRLakh(stageMap.Requirement),
       },
       {
         stage: "Pilot",
         amountInLakh: stageMap.Pilot / 100000,
         rawAmount: stageMap.Pilot,
-        percentage: Math.round((stageMap.Pilot / caseData.totalValue) * 100),
-        displayVal: "₹25L",
+        percentage: Math.round((stageMap.Pilot / totalPlanned) * 100),
+        displayVal: formatINRLakh(stageMap.Pilot),
       },
       {
         stage: "Evidence",
         amountInLakh: stageMap.Evidence / 100000,
         rawAmount: stageMap.Evidence,
-        percentage: Math.round((stageMap.Evidence / caseData.totalValue) * 100),
-        displayVal: "₹15L",
+        percentage: Math.round((stageMap.Evidence / totalPlanned) * 100),
+        displayVal: formatINRLakh(stageMap.Evidence),
       },
       {
         stage: "Procurement",
         amountInLakh: stageMap.Procurement / 100000,
         rawAmount: stageMap.Procurement,
-        percentage: Math.round((stageMap.Procurement / caseData.totalValue) * 100),
-        displayVal: "₹40L",
+        percentage: Math.round((stageMap.Procurement / totalPlanned) * 100),
+        displayVal: formatINRLakh(stageMap.Procurement),
       },
       {
         stage: "Deployment",
         amountInLakh: stageMap.Deployment / 100000,
         rawAmount: stageMap.Deployment,
-        percentage: Math.round((stageMap.Deployment / caseData.totalValue) * 100),
-        displayVal: "₹20L",
+        percentage: Math.round((stageMap.Deployment / totalPlanned) * 100),
+        displayVal: formatINRLakh(stageMap.Deployment),
       },
     ];
-  }, [caseData.totalValue]);
+  }, [milestones, totalPlanned]);
 
-  // 3. Milestone Readiness Donut Data (Status Counts)
+  // 3. Milestone Readiness Donut Data
   const milestoneReadinessData = useMemo(() => {
-    const completedCount = MILESTONES.filter(m => m.status === "Completed" || m.status === "Released").length;
-    const inProgressCount = 1; // Stage 6 Sandbox Pilot active
-    const pendingCount = MILESTONES.filter(m => m.status === "Pending Approval").length;
-    const lockedCount = MILESTONES.filter(m => m.status === "Locked").length - 1; // 2 locked upcoming
+    const completedCount = milestones.filter((m) => m.status === "Completed" || m.status === "Released").length;
+    const inProgressCount = milestones.filter((m) => m.status === "In Progress").length || (activeCase.status === "In Progress" ? 1 : 0);
+    const pendingCount = milestones.filter((m) => m.status === "Pending Approval").length;
+    const lockedCount = milestones.filter((m) => m.status === "Locked" || m.status === "Blocked").length;
 
     return [
       { name: "Completed", value: completedCount, fill: "#16834B" },
       { name: "In Progress", value: inProgressCount, fill: "#2563EB" },
       { name: "Pending Approval", value: pendingCount, fill: "#D97706" },
-      { name: "Locked", value: lockedCount > 0 ? lockedCount : 2, fill: "#94A3B8" },
+      { name: "Locked", value: lockedCount, fill: "#94A3B8" },
     ];
-  }, []);
+  }, [milestones, activeCase.status]);
 
-  // Filtered Milestones Table
-  const displayedMilestones = useMemo(() => {
-    if (statusFilter === "All Statuses") return MILESTONES;
-    return MILESTONES.filter(m => m.status === statusFilter);
-  }, [statusFilter]);
+  const completedMilestoneCount = milestones.filter((m) => m.status === "Completed" || m.status === "Released").length;
 
+  // Next Milestone for the detail panel (prioritize Pending Approval, then first Locked)
+  const nextMilestone = useMemo(() => {
+    return (
+      milestones.find((m) => m.status === "Pending Approval") ||
+      milestones.find((m) => m.status === "In Progress") ||
+      milestones.find((m) => m.status === "Locked") ||
+      null
+    );
+  }, [milestones]);
+
+  // Handlers
   function handleApprovalAction(action: string) {
     setApprovalAction(action);
     setTimeout(() => {
@@ -382,450 +707,410 @@ export default function FinancialMilestonesPage() {
   }
 
   function handleResetFilters() {
+    setSearchQuery("");
     setSelectedDepartment("All Departments");
-    setSelectedFY("FY 2026–27");
-    setStatusFilter("All Statuses");
+    setSelectedFY("All Years");
+    setSelectedStatus("All Statuses");
+    setSelectedCaseId("PRB-MH-2026-1042");
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
-      
-      {/* ═══════════════════════════════════════════════════════════════
-         1. PAGE HEADER
-         ═══════════════════════════════════════════════════════════════ */}
+    <div className="space-y-5 min-w-0 pb-12">
+      {/* ═══════════════════════════════════════════════════════════
+          1. PAGE HEADER
+          ═══════════════════════════════════════════════════════════ */}
       <GovPageHeader
-        eyebrow="Financial Governance"
+        eyebrow="Financial Decision & Milestone Intelligence"
         title="FINANCIAL MILESTONES"
-        subtitle="Track financial commitments, approvals and releases across the procurement lifecycle."
-        recordId={caseData.id}
+        subtitle="Track financial commitments, milestone eligibility and release readiness across the PRAMAN lifecycle."
+        recordId={activeCase.id}
         actions={
           <button
             onClick={handleDownloadReport}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              borderRadius: 6,
-              fontSize: "0.78rem",
-              fontWeight: 700,
-              background: "#FFFFFF",
-              color: "var(--gov-navy)",
-              border: "1px solid var(--line)",
-              cursor: "pointer",
-              boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded text-xs font-bold bg-white text-[#0B2A5B] border border-[#D9E1EA] hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <Download size={14} style={{ color: "var(--gov-blue)" }} />
-            Download Report
+            <Download size={14} className="text-[#0B2A5B]" />
+            <span>Download Financial Plan</span>
           </button>
         }
       />
 
-      {/* Toast Notification for Report Download */}
+      {/* Notifications / Toast Feedback */}
       {downloadToast && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, borderRadius: 6, padding: "10px 16px",
-          background: "#EFF6FF", border: "1px solid #BFDBFE", borderLeft: "4px solid #1D4ED8",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)", fontSize: "0.78rem", color: "#1E40AF", fontWeight: 700
-        }}>
-          <CheckCircle2 size={16} style={{ color: "#1D4ED8" }} />
-          Financial Milestones & Audit Trail report generated successfully (PDF simulation).
+        <div className="flex items-center gap-2.5 rounded-lg p-3 bg-[#EFF6FF] border border-[#BFDBFE] border-l-4 border-l-[#1D4ED8] text-xs text-[#1E40AF] font-bold shadow-sm">
+          <CheckCircle2 size={16} className="text-[#1D4ED8] shrink-0" />
+          <span>Case Financial Plan & Release Audit Summary generated successfully (PDF Simulation).</span>
         </div>
       )}
 
-      {/* Toast Notification for Approval Workflow */}
       {approvalDone && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, borderRadius: 6, padding: "12px 18px",
-          background: approvalAction === "Reject" ? "#FEF2F2" : "#F0FDF4",
-          border: `1px solid ${approvalAction === "Reject" ? "#FECACA" : "#BBF7D0"}`,
-          borderLeft: `4px solid ${approvalAction === "Reject" ? "#DC2626" : "#16834B"}`,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-        }}>
-          <CheckCircle2 size={16} style={{ color: approvalAction === "Reject" ? "#DC2626" : "#16834B" }} />
-          <div>
-            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: approvalAction === "Reject" ? "#991B1B" : "#166534" }}>
-              {approvalAction === "Approve Release" && "Milestone Release Approved — Recorded in immutable departmental audit trail."}
-              {approvalAction === "Reject" && "Milestone Release Rejected — Audit record updated."}
-              {approvalAction === "Request More Evidence" && "Additional Evidence Requested — Notification dispatched to startup via Cryptographic Locker."}
+        <div className={`flex items-center justify-between gap-3 rounded-lg p-3.5 shadow-sm text-xs font-bold border ${
+          approvalAction === "Reject"
+            ? "bg-[#FEF2F2] border-[#FECACA] border-l-4 border-l-[#DC2626] text-[#991B1B]"
+            : "bg-[#F0FDF4] border-[#BBF7D0] border-l-4 border-l-[#16834B] text-[#166534]"
+        }`}>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className={approvalAction === "Reject" ? "text-[#DC2626]" : "text-[#16834B]"} />
+            <span>
+              {approvalAction === "Approve Milestone" && "Milestone Release Approved — Recorded in immutable departmental financial audit trail."}
+              {approvalAction === "Reject" && "Milestone Release Rejected — Formal reason recorded."}
+              {approvalAction === "Request More Evidence" && "Additional Telemetry Evidence Requested — Notification dispatched to startup via Evidence Locker."}
             </span>
           </div>
-          <span style={{ fontSize: "0.65rem", color: "var(--ink-soft)", marginLeft: "auto", background: "white", padding: "2px 8px", borderRadius: 4, border: "1px solid var(--line)" }}>
-            Prototype Simulation
+          <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-[#D9E1EA] text-[#5E6B7E]">
+            Decision Support Simulation
           </span>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════
-         2. FILTER BAR (Primary: SELECT PROCUREMENT CASE)
-         ═══════════════════════════════════════════════════════════════ */}
-      <div style={{
-        background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-        padding: "14px 18px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-        display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12
-      }}>
-        {/* Primary Case Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 340px", minWidth: 260 }}>
-          <span style={{
-            fontSize: "0.72rem", fontWeight: 800, color: "var(--gov-navy)",
-            textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap"
-          }}>
-            Select Procurement Case:
+      {/* ═══════════════════════════════════════════════════════════
+          2. CASE & FINANCIAL FILTERS BAR (Prominent & Multi-Case)
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between border-b border-[#D9E1EA] pb-2">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal size={14} className="text-[#0B2A5B]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
+              CASE & FINANCIAL FILTERS
+            </h3>
+          </div>
+          <span className="text-[10px] font-semibold text-[#5E6B7E]">
+            {filteredCases.length} Procurement Cases Matching
           </span>
-          <select
-            value={selectedCase}
-            onChange={(e) => setSelectedCase(e.target.value)}
-            style={{
-              padding: "7px 12px", fontSize: "0.82rem", fontWeight: 700,
-              border: "1.5px solid #BFDBFE", borderRadius: 6,
-              background: "#EFF6FF", color: "#1D4ED8", outline: "none", cursor: "pointer",
-              width: "100%", maxWidth: 440
-            }}
-          >
-            <option value={caseData.id}>{caseData.id} — {caseData.title}</option>
-          </select>
         </div>
 
-        {/* Additional Filters */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-          {/* Department Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)", fontWeight: 600 }}>Dept:</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+          {/* Case Search Input */}
+          <div className="lg:col-span-4 relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Case ID, title, or department..."
+              className="w-full pl-9 pr-3 py-2 text-xs rounded border border-[#D9E1EA] focus:outline-none focus:ring-1 focus:ring-[#0B2A5B] bg-[#F8FAFC]"
+            />
+          </div>
+
+          {/* Primary Procurement Case Selector */}
+          <div className="lg:col-span-3">
             <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              style={{
-                padding: "6px 10px", fontSize: "0.75rem", fontWeight: 600,
-                border: "1px solid var(--line)", borderRadius: 5, background: "#F8FAFC", color: "var(--ink)", outline: "none"
-              }}
+              value={activeCase.id}
+              onChange={(e) => setSelectedCaseId(e.target.value)}
+              className="w-full p-2 text-xs font-bold text-[#0B2A5B] bg-[#EFF6FF] border border-[#BFDBFE] rounded focus:outline-none focus:ring-1 focus:ring-[#0B2A5B] cursor-pointer"
             >
-              <option value="All Departments">All Departments</option>
-              <option value="PWD Maharashtra">PWD Maharashtra</option>
-              <option value="Health & Family Welfare">Health & Family Welfare</option>
-              <option value="Urban Development">Urban Development</option>
+              {filteredCases.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.id} — {c.title.slice(0, 32)}...
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* FY Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)", fontWeight: 600 }}>FY:</span>
+          {/* Department Filter */}
+          <div className="lg:col-span-2">
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="w-full p-2 text-xs rounded border border-[#D9E1EA] bg-[#F8FAFC] text-[#172033] focus:outline-none"
+            >
+              <option value="All Departments">All Departments</option>
+              <option value="PWD Maharashtra">PWD Maharashtra</option>
+              <option value="Mumbai Municipal Corporation">Mumbai Municipal Corporation</option>
+              <option value="Nashik Municipal Corporation">Nashik Municipal Corporation</option>
+              <option value="Health & Family Welfare">Health & Family Welfare</option>
+            </select>
+          </div>
+
+          {/* Financial Year Filter */}
+          <div className="lg:col-span-1.5">
             <select
               value={selectedFY}
               onChange={(e) => setSelectedFY(e.target.value)}
-              style={{
-                padding: "6px 10px", fontSize: "0.75rem", fontWeight: 600,
-                border: "1px solid var(--line)", borderRadius: 5, background: "#F8FAFC", color: "var(--ink)", outline: "none"
-              }}
+              className="w-full p-2 text-xs rounded border border-[#D9E1EA] bg-[#F8FAFC] text-[#172033] focus:outline-none"
             >
+              <option value="All Years">All FY</option>
               <option value="FY 2026–27">FY 2026–27</option>
               <option value="FY 2025–26">FY 2025–26</option>
             </select>
           </div>
 
-          {/* Status Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)", fontWeight: 600 }}>Status:</span>
+          {/* Status Filter & Reset */}
+          <div className="lg:col-span-1.5 flex items-center gap-1.5">
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: "6px 10px", fontSize: "0.75rem", fontWeight: 600,
-                border: "1px solid var(--line)", borderRadius: 5, background: "#F8FAFC", color: "var(--ink)", outline: "none"
-              }}
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full p-2 text-xs rounded border border-[#D9E1EA] bg-[#F8FAFC] text-[#172033] focus:outline-none"
             >
               <option value="All Statuses">All Statuses</option>
-              <option value="Released">Released</option>
-              <option value="Pending Approval">Pending Approval</option>
-              <option value="Locked">Locked</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending Approval">Pending</option>
+              <option value="Completed">Completed</option>
+              <option value="Blocked">Blocked</option>
             </select>
-          </div>
 
-          {/* Action Buttons */}
-          <button
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "6px 12px", borderRadius: 5, fontSize: "0.74rem", fontWeight: 700,
-              background: "var(--gov-navy)", color: "#FFFFFF", border: "none", cursor: "pointer"
-            }}
-          >
-            <Filter size={12} /> Apply Filters
-          </button>
-          <button
-            onClick={handleResetFilters}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              padding: "6px 10px", borderRadius: 5, fontSize: "0.74rem", fontWeight: 600,
-              background: "#FFFFFF", color: "var(--ink-mid)", border: "1px solid var(--line)", cursor: "pointer"
-            }}
-          >
-            <RotateCcw size={12} /> Reset
-          </button>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-         3. SELECTED PROCUREMENT CASE HEADER
-         ═══════════════════════════════════════════════════════════════ */}
-      <div style={{
-        background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-        padding: "16px 20px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-        display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16
-      }}>
-        {/* Left: Active badge, ID, Title, Context pills */}
-        <div style={{ flex: "1 1 450px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{
-              fontSize: "0.68rem", fontWeight: 800, color: "#16834B",
-              background: "#DCFCE7", border: "1px solid #BBF7D0", padding: "2px 8px", borderRadius: 4,
-              textTransform: "uppercase", letterSpacing: "0.05em"
-            }}>
-              ACTIVE
-            </span>
-            <span style={{
-              fontFamily: "monospace", fontSize: "0.72rem", fontWeight: 800,
-              color: "#1D4ED8", background: "#EFF6FF", padding: "2px 8px", borderRadius: 4, border: "1px solid #BFDBFE"
-            }}>
-              {caseData.id}
-            </span>
-          </div>
-
-          <h2 style={{ fontSize: "1.08rem", fontWeight: 800, color: "var(--gov-navy)", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
-            {caseData.title}
-          </h2>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: "0.76rem", color: "var(--ink-mid)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <Building2 size={13} style={{ color: "var(--gov-blue)" }} /> {caseData.department}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <MapPin size={13} style={{ color: "var(--gov-blue)" }} /> {caseData.location}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <Target size={13} style={{ color: "var(--gov-blue)" }} /> {caseData.domain}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <CalendarDays size={13} style={{ color: "var(--gov-blue)" }} /> {caseData.timeline}
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Current Stage & Total Value */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ textAlign: "right", paddingRight: 16, borderRight: "1px solid var(--line)" }}>
-            <p className="gov-section-label" style={{ marginBottom: 2, fontSize: "0.65rem" }}>CURRENT STAGE</p>
-            <p style={{ fontSize: "0.92rem", fontWeight: 800, color: "var(--gov-blue)", margin: "0 0 2px" }}>
-              {caseData.currentStage}
-            </p>
-            <span style={{ fontSize: "0.68rem", color: "var(--ink-soft)", fontWeight: 600 }}>
-              {caseData.completedStages} of {caseData.totalStages} stages completed
-            </span>
-          </div>
-
-          <div style={{ textAlign: "right", background: "#F8FAFC", padding: "10px 16px", borderRadius: 6, border: "1px solid var(--line)" }}>
-            <p className="gov-section-label" style={{ marginBottom: 2, fontSize: "0.65rem" }}>Total Project Value</p>
-            <p style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--gov-navy)", margin: 0, fontFamily: "monospace" }}>
-              {formatINR(caseData.totalValue)}
-            </p>
-            <span style={{ fontSize: "0.68rem", color: "var(--ink-soft)", fontWeight: 600 }}>₹1.00 Cr (Estimated)</span>
+            <button
+              onClick={handleResetFilters}
+              title="Reset Filters"
+              className="p-2 rounded bg-white hover:bg-slate-100 border border-[#D9E1EA] text-[#5E6B7E]"
+            >
+              <RotateCcw size={14} />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         4. PRAMAN 9-STAGE LIFECYCLE
-         ═══════════════════════════════════════════════════════════════ */}
-      <div style={{
-        background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8, padding: "14px 18px",
-        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)", overflowX: "auto",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <p className="gov-section-label" style={{ margin: 0, fontSize: "0.68rem" }}>End-to-End Case Progression</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: "0.68rem" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#16834B", fontWeight: 700 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16834B" }} /> Completed
+      {/* ═══════════════════════════════════════════════════════════
+          3. SELECTED CASE HEADER
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Left Case Context */}
+          <div className="space-y-1.5 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#5E6B7E]">
+                SELECTED PROCUREMENT CASE
+              </span>
+              <span className="font-mono text-xs font-black text-[#0B2A5B] bg-[#EEF5FC] px-2.5 py-0.5 rounded border border-[#BFDBFE]">
+                {activeCase.id}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                activeCase.status === "In Progress"
+                  ? "bg-[#DCFCE7] text-[#16834B] border-[#BBF7D0]"
+                  : "bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]"
+              }`}>
+                {activeCase.status}
+              </span>
+              <span className="text-[10px] font-semibold text-[#5E6B7E] bg-slate-100 px-2 py-0.5 rounded">
+                {activeCase.financialYear}
+              </span>
+            </div>
+
+            <h2 className="text-base font-bold text-[#172033]">
+              {activeCase.title}
+            </h2>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#5E6B7E]">
+              <span className="flex items-center gap-1">
+                <Building2 size={13} className="text-[#0B2A5B]" />
+                <strong>Dept:</strong> {activeCase.department}
+              </span>
+              <span className="flex items-center gap-1">
+                <MapPin size={13} className="text-[#0B2A5B]" />
+                <strong>Location:</strong> {activeCase.location}
+              </span>
+              <span className="flex items-center gap-1">
+                <Target size={13} className="text-[#0B2A5B]" />
+                <strong>Domain:</strong> {activeCase.domain}
+              </span>
+              <span className="flex items-center gap-1">
+                <CalendarDays size={13} className="text-[#0B2A5B]" />
+                <strong>Pilot Timeline:</strong> {activeCase.timeline}
+              </span>
+            </div>
+          </div>
+
+          {/* Right Metrics & Quick Nav */}
+          <div className="flex flex-wrap items-center gap-3 lg:border-l lg:border-[#D9E1EA] lg:pl-4">
+            <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded-lg p-2.5 text-center min-w-[130px]">
+              <span className="text-[10px] font-bold uppercase text-[#5E6B7E] block">Estimated Value</span>
+              <span className="text-base font-black text-[#0B2A5B] font-mono block">
+                {formatINR(activeCase.totalValue)}
+              </span>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded-lg p-2.5 text-center min-w-[130px]">
+              <span className="text-[10px] font-bold uppercase text-[#5E6B7E] block">Current Stage</span>
+              <span className="text-xs font-bold text-[#1D4ED8] block">
+                {activeCase.currentStage}
+              </span>
+              <span className="text-[9px] text-[#5E6B7E]">
+                {activeCase.currentStageIndex + 1} of 9 Stages
+              </span>
+            </div>
+
+            <Link
+              href="/requirements"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] px-3 py-2 rounded border border-[#BFDBFE] transition-colors"
+            >
+              <span>View Requirement</span>
+              <ExternalLink size={12} />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          4. PRAMAN 9-STAGE LIFECYCLE
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm space-y-2">
+        <div className="flex items-center justify-between border-b border-[#D9E1EA] pb-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-[#5E6B7E]">
+            PRAMAN PROCUREMENT & FINANCIAL LIFECYCLE
+          </span>
+          <div className="flex items-center gap-3 text-[10px] font-bold">
+            <span className="text-[#16834B] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#16834B]" /> Completed
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#1236B8", fontWeight: 700 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1236B8" }} /> Current Stage
+            <span className="text-[#0B2A5B] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#0B2A5B] animate-pulse" /> Active Stage
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#D97706", fontWeight: 700 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#D97706" }} /> Action Required
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#64748B", fontWeight: 600 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94A3B8" }} /> Upcoming
+            <span className="text-[#94A3B8] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#CBD5E1]" /> Upcoming
             </span>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 0, minWidth: "fit-content" }}>
-          {LIFECYCLE_STAGES.map((s, i) => {
-            const isDone = s.state === "Completed";
-            const isCurrent = s.state === "Current";
-            const isAction = s.state === "Action Required";
-            const isUpcoming = s.state === "Upcoming";
-
-            let bg = "#F8FAFC";
-            let border = "1px solid var(--line)";
-            let color = "#64748B";
-            let shadow = "none";
-
-            if (isDone) {
-              bg = "#F0FDF4";
-              border = "1px solid #BBF7D0";
-              color = "#15803D";
-            } else if (isCurrent) {
-              bg = "#1236B8";
-              border = "1px solid #1236B8";
-              color = "#FFFFFF";
-              shadow = "0 2px 6px rgba(18, 54, 184, 0.25)";
-            } else if (isAction) {
-              bg = "#FFFBEB";
-              border = "1px solid #FDE68A";
-              color = "#B45309";
-            }
+        <div className="flex items-center gap-1 overflow-x-auto pt-1 pb-1 text-xs">
+          {PRAMAN_LIFECYCLE_STEPS.map((step, idx) => {
+            const isCompleted = idx < activeCase.currentStageIndex;
+            const isCurrent = idx === activeCase.currentStageIndex;
+            const isUpcoming = idx > activeCase.currentStageIndex;
 
             return (
-              <div key={s.name} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                <div style={{
-                  padding: "6px 10px", borderRadius: 5, fontSize: "0.65rem", fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap",
-                  display: "flex", alignItems: "center", gap: 4,
-                  background: bg, border, color, boxShadow: shadow
-                }}>
-                  {isDone && <Check size={11} style={{ color: "#16834B" }} />}
-                  {isCurrent && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFFFFF", display: "inline-block" }} />}
-                  {isAction && <Clock size={11} style={{ color: "#D97706" }} />}
-                  {isUpcoming && <Lock size={10} style={{ color: "#94A3B8" }} />}
-                  {s.name}
+              <React.Fragment key={step}>
+                <div className={`px-2.5 py-1.5 rounded font-bold text-[11px] whitespace-nowrap flex items-center gap-1.5 ${
+                  isCurrent
+                    ? "bg-[#0B2A5B] text-white shadow-sm"
+                    : isCompleted
+                    ? "bg-[#DCFCE7] text-[#16834B] border border-[#BBF7D0]"
+                    : "bg-[#F8FAFC] text-[#64748B] border border-[#D9E1EA]"
+                }`}>
+                  {isCompleted && <Check size={11} />}
+                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                  {isUpcoming && <Lock size={10} className="text-[#94A3B8]" />}
+                  <span>{step}</span>
                 </div>
-                {i < LIFECYCLE_STAGES.length - 1 && (
-                  <ChevronRight size={13} style={{ color: "#CBD5E1", flexShrink: 0, margin: "0 2px" }} />
+                {idx < PRAMAN_LIFECYCLE_STEPS.length - 1 && (
+                  <ChevronRight size={13} className="text-[#CBD5E1] shrink-0" />
                 )}
-              </div>
+              </React.Fragment>
             );
           })}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         5. FINANCIAL SUMMARY — EXACT 4 CARDS (Consistent Height & Alignment)
-         ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* CARD 1: Total Project Value */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", borderTop: "3px solid var(--gov-navy)",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="gov-section-label" style={{ margin: 0 }}>Total Project Value</span>
-            <Wallet size={16} style={{ color: "var(--gov-navy)" }} />
+      {/* ═══════════════════════════════════════════════════════════
+          5. FINANCIAL SUMMARY CARDS (4 Dynamic Cards)
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: TOTAL PLANNED */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-3.5 shadow-sm border-t-4 border-t-[#0B2A5B] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-[#5E6B7E]">TOTAL PLANNED</span>
+            <Wallet size={16} className="text-[#0B2A5B]" />
           </div>
           <div>
-            <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "var(--gov-navy)", margin: "4px 0 2px", fontFamily: "monospace" }}>
-              {formatINR(caseData.totalValue)}
+            <p className="text-xl md:text-2xl font-black text-[#0B2A5B] font-mono mt-1">
+              {formatINR(totalPlanned)}
             </p>
-            <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)", fontWeight: 600 }}>
-              ₹1 Cr (Estimated)
-            </span>
+            <p className="text-[10px] text-[#5E6B7E] mt-0.5">Budget Commitment</p>
           </div>
         </div>
 
-        {/* CARD 2: Released So Far */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", borderTop: "3px solid #16834B",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="gov-section-label" style={{ margin: 0 }}>Released So Far</span>
-            <CheckCircle2 size={16} style={{ color: "#16834B" }} />
+        {/* Card 2: RELEASED SO FAR */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-3.5 shadow-sm border-t-4 border-t-[#16834B] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-[#5E6B7E]">RELEASED SO FAR</span>
+            <CheckCircle2 size={16} className="text-[#16834B]" />
           </div>
           <div>
-            <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "#16834B", margin: "4px 0 2px", fontFamily: "monospace" }}>
+            <p className="text-xl md:text-2xl font-black text-[#16834B] font-mono mt-1">
               {formatINR(released)}
             </p>
-            <span style={{ fontSize: "0.7rem", color: "#15803D", fontWeight: 700 }}>
-              {releasedPct}% of total
-            </span>
-          </div>
-        </div>
-
-        {/* CARD 3: Next Milestone Amount */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", borderTop: "3px solid #D97706",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="gov-section-label" style={{ margin: 0 }}>Next Milestone Amount</span>
-            <Clock size={16} style={{ color: "#D97706" }} />
-          </div>
-          <div>
-            <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "#D97706", margin: "4px 0 2px", fontFamily: "monospace" }}>
-              {nextMilestone ? formatINR(nextMilestone.amount) : "—"}
+            <p className="text-[10px] font-bold text-[#16834B] mt-0.5">
+              {releasedPct}% of total planned
             </p>
-            <span style={{ fontSize: "0.7rem", color: "#B45309", fontWeight: 700, background: "#FEF3C7", padding: "1px 6px", borderRadius: 3 }}>
-              Pending Approval
-            </span>
           </div>
         </div>
 
-        {/* CARD 4: Remaining Value */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", borderTop: "3px solid #64748B",
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 110
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span className="gov-section-label" style={{ margin: 0 }}>Remaining Value</span>
-            <Landmark size={16} style={{ color: "#64748B" }} />
+        {/* Card 3: NEXT MILESTONE */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-3.5 shadow-sm border-t-4 border-t-[#D97706] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-[#5E6B7E]">NEXT MILESTONE</span>
+            <Clock size={16} className="text-[#D97706]" />
           </div>
           <div>
-            <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "var(--ink-mid)", margin: "4px 0 2px", fontFamily: "monospace" }}>
+            <p className="text-xl md:text-2xl font-black text-[#D97706] font-mono mt-1">
+              {pendingAmount > 0 ? formatINR(pendingAmount) : (nextMilestone ? formatINR(nextMilestone.amount) : "₹0")}
+            </p>
+            <p className="text-[10px] font-bold text-[#B45309] mt-0.5">
+              {pendingAmount > 0 ? "Pending Approval" : "Next in Pipeline"}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: REMAINING VALUE */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-3.5 shadow-sm border-t-4 border-t-[#64748B] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase text-[#5E6B7E]">REMAINING</span>
+            <Landmark size={16} className="text-[#64748B]" />
+          </div>
+          <div>
+            <p className="text-xl md:text-2xl font-black text-[#475569] font-mono mt-1">
               {formatINR(remainingValue)}
             </p>
-            <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)", fontWeight: 600 }}>
-              {100 - releasedPct}% remaining
-            </span>
+            <p className="text-[10px] text-[#64748B] mt-0.5">
+              {100 - releasedPct}% unreleased
+            </p>
           </div>
         </div>
-
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         6. NEW FINANCIAL VISUALIZATION AREA (3 Compact Cards)
-            LEFT: Financial Progress (Donut)
-            CENTER: Fund Distribution by Stage (Bar Chart)
-            RIGHT: Milestone Readiness (Donut)
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          6. FINANCIAL STATUS HORIZONTAL SUMMARY
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded-lg p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-[#172033]">Financial Allocation Breakdown:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#16834B]" />
+            <span className="text-[#5E6B7E]">Released:</span>
+            <span className="font-bold text-[#16834B] font-mono">{formatINR(released)}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" />
+            <span className="text-[#5E6B7E]">Approved / Ready:</span>
+            <span className="font-bold text-[#1D4ED8] font-mono">₹0</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]" />
+            <span className="text-[#5E6B7E]">Pending Approval:</span>
+            <span className="font-bold text-[#D97706] font-mono">{formatINR(pendingAmount)}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#94A3B8]" />
+            <span className="text-[#5E6B7E]">Locked / Planned:</span>
+            <span className="font-bold text-[#64748B] font-mono">{formatINR(lockedAmount)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          7. VISUAL ANALYTICS (3 Compact Cards)
+          ═══════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
-        {/* VISUAL 1: Financial Progress (Donut Chart) */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <PieIcon size={15} style={{ color: "var(--gov-blue)" }} />
-              <h3 style={{ fontSize: "0.84rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
+        {/* CARD 1: Financial Progress (Donut Chart) */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <PieIcon size={15} className="text-[#0B2A5B]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
                 Financial Progress
               </h3>
             </div>
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16834B", background: "#DCFCE7", padding: "1px 6px", borderRadius: 3 }}>
+            <span className="text-[10px] font-bold text-[#16834B] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#BBF7D0]">
               {releasedPct}% Released
             </span>
           </div>
 
-          {/* Donut Chart with Centered Value */}
-          <div style={{ position: "relative", width: "100%", height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="relative w-full h-40 flex items-center justify-center">
             {mounted ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -834,8 +1119,8 @@ export default function FinancialMilestonesPage() {
                     data={financialProgressData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={72}
+                    innerRadius={48}
+                    outerRadius={70}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -846,176 +1131,114 @@ export default function FinancialMilestonesPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: "100%", width: "100%", background: "#F8FAFC", borderRadius: 6 }} />
+              <div className="h-full w-full bg-slate-50 rounded" />
             )}
 
-            {/* Center Label */}
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              pointerEvents: "none"
-            }}>
-              <p style={{ fontSize: "1.1rem", fontWeight: 900, color: "var(--gov-navy)", margin: 0, lineHeight: 1 }}>
-                {releasedPct}%
-              </p>
-              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: "#16834B", margin: "2px 0 0" }}>
-                {formatINR(released)} Released
-              </p>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+              <p className="text-lg font-black text-[#0B2A5B] leading-none">{releasedPct}%</p>
+              <p className="text-[9px] font-bold text-[#16834B] mt-1">{formatINR(released)}</p>
             </div>
           </div>
 
-          {/* Legend */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 10px",
-            fontSize: "0.7rem", borderTop: "1px solid var(--line)", paddingTop: 10, marginTop: 6
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16834B", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Released:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink)" }}>{formatINR(released)} ({releasedPct}%)</strong>
+          <div className="grid grid-cols-2 gap-2 text-[10px] border-t border-[#D9E1EA] pt-2.5 mt-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#16834B] shrink-0" />
+              <span className="text-[#5E6B7E]">Released:</span>
+              <span className="font-bold ml-auto">{formatINR(released)}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Approved:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink)" }}>₹0 (0%)</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#3B82F6] shrink-0" />
+              <span className="text-[#5E6B7E]">Approved:</span>
+              <span className="font-bold ml-auto">₹0</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Pending:</span>
-              <strong style={{ marginLeft: "auto", color: "#B45309" }}>{formatINR(nextMilestoneAmount)} ({pendingPct}%)</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#D97706] shrink-0" />
+              <span className="text-[#5E6B7E]">Pending:</span>
+              <span className="font-bold text-[#D97706] ml-auto">{formatINR(pendingAmount)}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#CBD5E1", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Remaining:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink-soft)" }}>{formatINR(remainingUncommitted)} ({remainingPct}%)</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#CBD5E1] shrink-0" />
+              <span className="text-[#5E6B7E]">Locked:</span>
+              <span className="font-bold text-[#64748B] ml-auto">{formatINR(lockedAmount)}</span>
             </div>
           </div>
         </div>
 
-        {/* VISUAL 2: Fund Distribution by Stage (Bar Chart) */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <BarChart3 size={15} style={{ color: "var(--gov-blue)" }} />
-              <h3 style={{ fontSize: "0.84rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
+        {/* CARD 2: Fund Distribution by Stage (Bar Chart) */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <BarChart3 size={15} className="text-[#0B2A5B]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
                 Fund Distribution by Stage
               </h3>
             </div>
 
-            {/* Compact Toggle [ Amount ] [ Percentage ] */}
-            <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 4, padding: 2, border: "1px solid var(--line)" }}>
+            <div className="flex bg-[#F1F5F9] rounded p-0.5 border border-[#D9E1EA]">
               <button
                 onClick={() => setDistributionMode("amount")}
-                style={{
-                  padding: "2px 8px", fontSize: "0.65rem", fontWeight: 700, borderRadius: 3, border: "none", cursor: "pointer",
-                  background: distributionMode === "amount" ? "#FFFFFF" : "transparent",
-                  color: distributionMode === "amount" ? "var(--gov-navy)" : "var(--ink-soft)",
-                  boxShadow: distributionMode === "amount" ? "0 1px 2px rgba(0,0,0,0.06)" : "none"
-                }}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                  distributionMode === "amount" ? "bg-white text-[#0B2A5B] shadow-xs" : "text-[#64748B]"
+                }`}
               >
                 Amount
               </button>
               <button
                 onClick={() => setDistributionMode("percentage")}
-                style={{
-                  padding: "2px 8px", fontSize: "0.65rem", fontWeight: 700, borderRadius: 3, border: "none", cursor: "pointer",
-                  background: distributionMode === "percentage" ? "#FFFFFF" : "transparent",
-                  color: distributionMode === "percentage" ? "var(--gov-navy)" : "var(--ink-soft)",
-                  boxShadow: distributionMode === "percentage" ? "0 1px 2px rgba(0,0,0,0.06)" : "none"
-                }}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                  distributionMode === "percentage" ? "bg-white text-[#0B2A5B] shadow-xs" : "text-[#64748B]"
+                }`}
               >
-                Percentage
+                %
               </button>
             </div>
           </div>
 
-          {/* Bar Chart */}
-          <div style={{ width: "100%", height: 160 }}>
+          <div className="w-full h-40">
             {mounted ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={fundDistributionData} margin={{ top: 18, right: 8, left: -22, bottom: 0 }}>
+                <BarChart data={fundDistributionData} margin={{ top: 15, right: 5, left: -24, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                  <XAxis
-                    dataKey="stage"
-                    stroke="#94A3B8"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={{ stroke: "#E2E8F0" }}
-                  />
-                  <YAxis
-                    stroke="#94A3B8"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    unit={distributionMode === "amount" ? "L" : "%"}
-                  />
+                  <XAxis dataKey="stage" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={{ stroke: "#E2E8F0" }} />
+                  <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit={distributionMode === "amount" ? "L" : "%"} />
                   <Tooltip content={<CustomBarTooltip mode={distributionMode} />} />
-                  <Bar
-                    dataKey={distributionMode === "amount" ? "amountInLakh" : "percentage"}
-                    fill="#1E3A8A"
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {fundDistributionData.map((entry, index) => {
-                      const isPilot = entry.stage === "Pilot";
-                      return (
-                        <Cell
-                          key={`bar-${index}`}
-                          fill={isPilot ? "#2563EB" : index === 3 ? "#0284C7" : index === 4 ? "#0D9488" : "#94A3B8"}
-                        />
-                      );
-                    })}
+                  <Bar dataKey={distributionMode === "amount" ? "amountInLakh" : "percentage"} fill="#0B2A5B" radius={[4, 4, 0, 0]}>
+                    {fundDistributionData.map((entry, index) => (
+                      <Cell key={`bar-${index}`} fill={index === 1 ? "#2563EB" : index === 3 ? "#0B2A5B" : index === 4 ? "#0D9488" : "#94A3B8"} />
+                    ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: "100%", width: "100%", background: "#F8FAFC", borderRadius: 6 }} />
+              <div className="h-full w-full bg-slate-50 rounded" />
             )}
           </div>
 
-          {/* Values Row below Chart */}
-          <div style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            fontSize: "0.68rem", fontWeight: 700, color: "var(--ink-mid)",
-            borderTop: "1px solid var(--line)", paddingTop: 10, marginTop: 6
-          }}>
+          <div className="flex justify-between items-center text-[10px] font-bold border-t border-[#D9E1EA] pt-2.5 mt-2">
             {fundDistributionData.map((d) => (
-              <div key={d.stage} style={{ textAlign: "center", flex: 1 }}>
-                <span style={{ color: "var(--ink-soft)", fontSize: "0.62rem", display: "block" }}>{d.stage}</span>
-                <span style={{ color: "var(--gov-navy)", fontWeight: 800 }}>
-                  {distributionMode === "amount" ? d.displayVal : `${d.percentage}%`}
-                </span>
+              <div key={d.stage} className="text-center flex-1">
+                <span className="text-[#94A3B8] text-[9px] block">{d.stage.slice(0, 4)}</span>
+                <span className="text-[#0B2A5B]">{distributionMode === "amount" ? d.displayVal : `${d.percentage}%`}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* VISUAL 3: Milestone Readiness (Status Donut) */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <CheckCircle size={15} style={{ color: "#16834B" }} />
-              <h3 style={{ fontSize: "0.84rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
+        {/* CARD 3: Milestone Readiness (Status Donut) */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle size={15} className="text-[#16834B]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
                 Milestone Readiness
               </h3>
             </div>
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#1E40AF", background: "#EFF6FF", padding: "1px 6px", borderRadius: 3 }}>
-              6 Gates Defined
+            <span className="text-[10px] font-bold text-[#1D4ED8] bg-[#EFF6FF] px-2 py-0.5 rounded border border-[#BFDBFE]">
+              {milestones.length} Gates Defined
             </span>
           </div>
 
-          {/* Donut Chart with Centered Status Counter */}
-          <div style={{ position: "relative", width: "100%", height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="relative w-full h-40 flex items-center justify-center">
             {mounted ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -1024,8 +1247,8 @@ export default function FinancialMilestonesPage() {
                     data={milestoneReadinessData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={72}
+                    innerRadius={48}
+                    outerRadius={70}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -1036,585 +1259,566 @@ export default function FinancialMilestonesPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: "100%", width: "100%", background: "#F8FAFC", borderRadius: 6 }} />
+              <div className="h-full w-full bg-slate-50 rounded" />
             )}
 
-            {/* Center Label */}
-            <div style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              pointerEvents: "none"
-            }}>
-              <p style={{ fontSize: "1.15rem", fontWeight: 900, color: "var(--gov-navy)", margin: 0, lineHeight: 1 }}>
-                3 / 6
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+              <p className="text-lg font-black text-[#0B2A5B] leading-none">
+                {completedMilestoneCount} / {milestones.length}
               </p>
-              <p style={{ fontSize: "0.62rem", fontWeight: 700, color: "#16834B", margin: "2px 0 0" }}>
-                Milestones On Track
-              </p>
+              <p className="text-[9px] font-bold text-[#16834B] mt-1">Completed</p>
             </div>
           </div>
 
-          {/* Legend */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 10px",
-            fontSize: "0.7rem", borderTop: "1px solid var(--line)", paddingTop: 10, marginTop: 6
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#16834B", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Completed:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink)" }}>2</strong>
+          <div className="grid grid-cols-2 gap-2 text-[10px] border-t border-[#D9E1EA] pt-2.5 mt-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#16834B] shrink-0" />
+              <span className="text-[#5E6B7E]">Completed:</span>
+              <span className="font-bold ml-auto">{completedMilestoneCount}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563EB", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>In Progress:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink)" }}>1</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0" />
+              <span className="text-[#5E6B7E]">In Progress:</span>
+              <span className="font-bold ml-auto">{activeCase.status === "In Progress" ? 1 : 0}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#D97706", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Pending:</span>
-              <strong style={{ marginLeft: "auto", color: "#B45309" }}>1</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#D97706] shrink-0" />
+              <span className="text-[#5E6B7E]">Pending:</span>
+              <span className="font-bold text-[#D97706] ml-auto">{pendingMilestone ? 1 : 0}</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#94A3B8", flexShrink: 0 }} />
-              <span style={{ color: "var(--ink-mid)" }}>Locked:</span>
-              <strong style={{ marginLeft: "auto", color: "var(--ink-soft)" }}>2</strong>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" />
+              <span className="text-[#5E6B7E]">Locked:</span>
+              <span className="font-bold text-[#64748B] ml-auto">{milestones.filter(m => m.status === "Locked").length}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          8. MAIN WORKSPACE: TABLE (LEFT) + NEXT MILESTONE (RIGHT)
+          ═══════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-w-0">
+        {/* LEFT: FINANCIAL MILESTONE PLAN TABLE (7 cols) */}
+        <div className="lg:col-span-7 space-y-3">
+          <div className="bg-white border border-[#D9E1EA] rounded-lg shadow-sm overflow-hidden">
+            <div className="p-3.5 border-b border-[#D9E1EA] bg-[#F8FAFC] flex items-center justify-between">
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
+                  FINANCIAL MILESTONE PLAN — {activeCase.id}
+                </h2>
+                <p className="text-[10px] text-[#5E6B7E]">
+                  Sequential release gates tied to validated telemetry and milestone performance
+                </p>
+              </div>
+              <span className="text-[10px] font-bold text-[#0B2A5B] bg-[#EEF5FC] px-2 py-0.5 rounded border border-[#BFDBFE]">
+                {displayedMilestones.length} Milestones Scheduled
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="gov-table w-full text-xs">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32, textAlign: "center" }}>#</th>
+                    <th style={{ width: 95 }}>Stage</th>
+                    <th>Milestone</th>
+                    <th style={{ width: 95 }}>Amount</th>
+                    <th>Trigger / Conditions</th>
+                    <th style={{ width: 115 }}>Status</th>
+                    <th style={{ width: 80, textAlign: "right" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedMilestones.map((m) => {
+                    const sc = getMilestoneStatusStyle(m.status);
+                    const isPending = m.status === "Pending Approval";
+                    const isLocked = m.status === "Locked" || m.status === "Blocked";
+                    const isExpanded = expandedLockedId === m.id;
+
+                    return (
+                      <React.Fragment key={m.id}>
+                        <tr className={isPending ? "bg-[#FFFDF5] border-l-4 border-l-[#D97706]" : ""}>
+                          <td className="text-center font-bold text-[#64748B]">{m.id}</td>
+                          <td>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-[#475569]">
+                              {m.stage}
+                            </span>
+                          </td>
+                          <td>
+                            <p className="font-bold text-[#172033]">{m.milestone}</p>
+                          </td>
+                          <td className="font-mono font-bold text-[#0B2A5B]">
+                            {m.amount > 0 ? formatINR(m.amount) : "₹0"}
+                          </td>
+                          <td className="text-[11px] text-[#5E6B7E] leading-snug">
+                            {m.trigger}
+                          </td>
+                          <td>
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: sc.dot }} />
+                              {m.status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            {isPending ? (
+                              <button
+                                onClick={() => {
+                                  setApprovalTargetMilestone(m);
+                                  setApprovalModal(true);
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#D97706] hover:bg-[#b45309] rounded shadow-xs"
+                              >
+                                Review
+                              </button>
+                            ) : m.status === "Released" || m.status === "Completed" ? (
+                              <button
+                                onClick={() => {
+                                  setEvidenceTargetMilestone(m);
+                                  setEvidenceModal(true);
+                                }}
+                                className="px-2.5 py-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] border border-[#BFDBFE] rounded"
+                              >
+                                View
+                              </button>
+                            ) : isLocked ? (
+                              <button
+                                onClick={() => setExpandedLockedId(isExpanded ? null : m.id)}
+                                className="text-[10px] font-bold text-[#64748B] hover:text-[#0B2A5B] underline"
+                              >
+                                {isExpanded ? "Hide Reason" : "Why Locked?"}
+                              </button>
+                            ) : (
+                              <span className="text-[#94A3B8]">—</span>
+                            )}
+                          </td>
+                        </tr>
+
+                        {/* Expandable Explanation for Locked Milestones */}
+                        {isLocked && isExpanded && (
+                          <tr className="bg-[#F8FAFC]">
+                            <td colSpan={7} className="p-3 border-b border-[#D9E1EA]">
+                              <div className="rounded bg-[#EFF6FF] border border-[#BFDBFE] p-3 text-xs space-y-2">
+                                <div className="flex items-center gap-1.5 text-[#1D4ED8] font-bold">
+                                  <Info size={14} />
+                                  <span>Why is Milestone #{m.id} Locked?</span>
+                                </div>
+                                <p className="text-[#1E3A8A]">
+                                  <strong>Reason:</strong> {m.lockedReason || "Prerequisite pilot evaluation stage has not been completed."}
+                                </p>
+                                {m.prerequisites && (
+                                  <div className="space-y-1">
+                                    <span className="font-bold text-[#172033] text-[11px]">Required Pre-conditions:</span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                                      {m.prerequisites.map((p, idx) => (
+                                        <div key={idx} className="flex items-center gap-1.5 text-[#475569]">
+                                          {p.status === "met" ? (
+                                            <CheckCircle2 size={12} className="text-[#16834B]" />
+                                          ) : p.status === "pending" ? (
+                                            <Clock size={12} className="text-[#D97706]" />
+                                          ) : (
+                                            <Lock size={12} className="text-[#94A3B8]" />
+                                          )}
+                                          <span>{p.name}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-3 bg-[#F8FAFC] border-t border-[#D9E1EA] flex items-center gap-2 text-[11px] text-[#5E6B7E]">
+              <ShieldCheck size={14} className="text-[#0B2A5B] shrink-0" />
+              <span>
+                PRAMAN Governance Policy: Fund releases execute only upon validated cryptographic telemetry proof and authorized officer review.
+              </span>
             </div>
           </div>
         </div>
 
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-         7 & 8. FINANCIAL MILESTONE PLAN (TABLE) + NEXT MILESTONE DETAILS
-         ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 min-w-0">
-        
-        {/* Detailed Milestone Plan Table */}
-        <Panel
-          title={
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.88rem", fontWeight: 800 }}>
-                FINANCIAL MILESTONE PLAN
-              </span>
-              <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--ink-soft)" }}>
-                {displayedMilestones.length} Milestones Scheduled
-              </span>
-            </div>
-          }
-          icon={<Wallet size={15} style={{ color: "var(--gov-blue)" }} />}
-        >
-          <div style={{ overflowX: "auto" }}>
-            <table className="gov-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 32, textAlign: "center" }}>#</th>
-                  <th style={{ width: 100 }}>Stage</th>
-                  <th>Milestone</th>
-                  <th style={{ width: 110 }}>Amount</th>
-                  <th>Trigger / Conditions</th>
-                  <th style={{ width: 130 }}>Status</th>
-                  <th style={{ width: 90, textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedMilestones.map((m) => {
-                  const sc = statusBadgeStyle(m.status);
-                  const isPending = m.status === "Pending Approval";
-                  return (
-                    <tr key={m.id} style={{ background: isPending ? "#FFFDF5" : undefined }}>
-                      <td style={{ fontWeight: 800, color: "var(--ink-soft)", textAlign: "center" }}>{m.id}</td>
-                      <td>
-                        <span style={{
-                          fontSize: "0.68rem", fontWeight: 700, padding: "2px 7px",
-                          borderRadius: 4, background: "#F1F5F9", color: "var(--ink-mid)"
-                        }}>
-                          {m.stage}
-                        </span>
-                      </td>
-                      <td>
-                        <p style={{ fontWeight: isPending ? 800 : 700, color: "var(--ink)", margin: 0 }}>
-                          {m.milestone}
-                        </p>
-                      </td>
-                      <td style={{ fontWeight: 800, color: isPending ? "#B45309" : "var(--ink)", fontFamily: "monospace" }}>
-                        {m.amount > 0 ? formatINR(m.amount) : "₹0"}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: "0.72rem", color: "var(--ink-mid)", lineHeight: 1.35 }}>
-                          {m.trigger}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                          padding: "3px 8px", borderRadius: 4, fontSize: "0.68rem", fontWeight: 700,
-                          background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text,
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.dot }} />
-                          {m.status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        {isPending && (
-                          <button
-                            onClick={() => setApprovalModal(true)}
-                            style={{
-                              fontSize: "0.72rem", fontWeight: 800, padding: "4px 12px",
-                              borderRadius: 4, border: "1px solid #FDE68A",
-                              background: "#D97706", color: "#FFFFFF",
-                              cursor: "pointer", boxShadow: "0 1px 3px rgba(217, 119, 6, 0.2)",
-                            }}
-                          >
-                            Review
-                          </button>
-                        )}
-                        {m.status === "Released" && (
-                          <button
-                            onClick={() => setEvidenceModal(true)}
-                            style={{
-                              fontSize: "0.7rem", fontWeight: 700, padding: "3px 8px",
-                              borderRadius: 4, border: "1px solid var(--line)",
-                              background: "#FFFFFF", color: "var(--ink-mid)", cursor: "pointer"
-                            }}
-                          >
-                            View
-                          </button>
-                        )}
-                        {m.status === "Completed" && (
-                          <button
-                            onClick={() => setEvidenceModal(true)}
-                            style={{
-                              fontSize: "0.7rem", fontWeight: 700, padding: "3px 8px",
-                              borderRadius: 4, border: "1px solid var(--line)",
-                              background: "#FFFFFF", color: "var(--ink-mid)", cursor: "pointer"
-                            }}
-                          >
-                            View
-                          </button>
-                        )}
-                        {m.status === "Locked" && (
-                          <span style={{ fontSize: "0.7rem", color: "var(--ink-soft)" }}>
-                            —
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{
-            marginTop: 12, padding: "8px 12px", borderRadius: 5,
-            background: "#F8FAFC", border: "1px solid var(--line)",
-            fontSize: "0.68rem", color: "var(--ink-soft)", fontWeight: 500,
-            display: "flex", alignItems: "center", gap: 6,
-          }}>
-            <ShieldCheck size={13} style={{ color: "var(--gov-blue)" }} />
-            Single source of truth — Fund releases execute only upon validated cryptographic telemetry proof and officer authorization.
-          </div>
-        </Panel>
-
-        {/* Next Milestone Details Panel */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {nextMilestone && (
-            <Panel
-              title={
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.86rem", fontWeight: 800 }}>
-                    NEXT MILESTONE DETAILS
+        {/* RIGHT: NEXT FINANCIAL MILESTONE & RELEASE CONDITIONS (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          {nextMilestone ? (
+            <div className="bg-white border border-[#D9E1EA] rounded-lg shadow-sm overflow-hidden sticky top-4">
+              <div className="p-4 bg-[#0B2A5B] text-white">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-white/70">
+                    NEXT FINANCIAL MILESTONE
                   </span>
-                  <span style={{
-                    fontSize: "0.62rem", fontWeight: 800, padding: "2px 7px",
-                    borderRadius: 3, background: "#FEF3C7", color: "#B45309",
-                    border: "1px solid #FDE68A", textTransform: "uppercase"
-                  }}>
-                    Pending Approval
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    nextMilestone.status === "Pending Approval"
+                      ? "bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]"
+                      : "bg-white/20 text-white border-white/30"
+                  }`}>
+                    {nextMilestone.status}
                   </span>
                 </div>
-              }
-              icon={<Clock size={15} style={{ color: "#D97706" }} />}
-              accent="saffron"
-            >
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                
-                {/* Milestone summary header */}
-                <div style={{ background: "#FFFBEB", padding: "12px 14px", borderRadius: 6, border: "1px solid #FDE68A" }}>
-                  <p style={{ fontSize: "0.92rem", fontWeight: 800, color: "#78350F", margin: "0 0 4px" }}>
-                    Mid-Pilot Evaluation (30 days)
-                  </p>
-                  <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "#D97706", margin: "0 0 6px", fontFamily: "monospace" }}>
-                    {formatINR(nextMilestone.amount)}
-                  </p>
-                  <p style={{ fontSize: "0.73rem", color: "#92400E", margin: 0, lineHeight: 1.4 }}>
-                    To be released after successful 30-day pilot evaluation and KPI validation.
+                <h3 className="text-base font-black text-white">
+                  {nextMilestone.milestone}
+                </h3>
+                <p className="text-xs text-white/80 mt-0.5">
+                  Linked Stage: {nextMilestone.stage}
+                </p>
+              </div>
+
+              <div className="p-4 space-y-4 text-xs">
+                <div className="p-3 rounded bg-[#FFFBEB] border border-[#FDE68A] space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-semibold text-[#78350F]">Milestone Release Amount:</span>
+                    <span className="text-lg font-black text-[#D97706] font-mono">
+                      {formatINR(nextMilestone.amount)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#92400E] leading-snug">
+                    {nextMilestone.trigger}
                   </p>
                 </div>
 
-                {/* Conditions Checklist */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <p className="gov-section-label" style={{ margin: 0, fontSize: "0.66rem" }}>Conditions Checklist</p>
-                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16834B" }}>3 of 5 met</span>
+                {/* RELEASE CONDITIONS CHECKLIST */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-[#172033] uppercase text-[10px] tracking-wider">
+                      RELEASE CONDITIONS
+                    </span>
+                    <span className="text-[11px] font-bold text-[#16834B]">
+                      {nextMilestone.conditions
+                        ? `${nextMilestone.conditions.filter((c) => c.met).length} of ${nextMilestone.conditions.length} satisfied`
+                        : "Verification in progress"}
+                    </span>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                    {nextMilestone.conditions?.map((c, i) => (
-                      <div key={i} style={{
-                        display: "flex", alignItems: "flex-start", gap: 8,
-                        fontSize: "0.74rem", color: c.met ? "#166534" : "var(--ink-soft)",
-                        fontWeight: c.met ? 600 : 400, padding: "6px 8px", borderRadius: 4,
-                        background: c.met ? "#F0FDF4" : "#F8FAFC",
-                        border: `1px solid ${c.met ? "#BBF7D0" : "var(--line)"}`
-                      }}>
-                        {c.met ? (
-                          <CheckCircle2 size={13} style={{ color: "#16834B", flexShrink: 0, marginTop: 2 }} />
-                        ) : (
-                          <Clock size={13} style={{ color: "#D97706", flexShrink: 0, marginTop: 2 }} />
-                        )}
-                        <span style={{ lineHeight: 1.35 }}>{c.text}</span>
-                      </div>
-                    ))}
-                  </div>
+
+                  {nextMilestone.conditions ? (
+                    <div className="space-y-1.5">
+                      {nextMilestone.conditions.map((c, i) => (
+                        <div
+                          key={i}
+                          className={`p-2 rounded border flex items-start gap-2 text-[11px] ${
+                            c.met
+                              ? "bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]"
+                              : "bg-[#F8FAFC] border-[#D9E1EA] text-[#64748B]"
+                          }`}
+                        >
+                          {c.met ? (
+                            <CheckCircle2 size={13} className="text-[#16834B] shrink-0 mt-0.5" />
+                          ) : (
+                            <Clock size={13} className="text-[#D97706] shrink-0 mt-0.5" />
+                          )}
+                          <span className="leading-snug">{c.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-[#5E6B7E] italic">
+                      Prerequisite gates must clear before release conditions activate.
+                    </p>
+                  )}
                 </div>
 
-                {/* Action Buttons */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+                {/* Actions */}
+                <div className="space-y-2 pt-2 border-t border-[#D9E1EA]">
+                  {nextMilestone.status === "Pending Approval" && (
+                    <button
+                      onClick={() => {
+                        setApprovalTargetMilestone(nextMilestone);
+                        setApprovalModal(true);
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded bg-[#D97706] hover:bg-[#b45309] text-white font-bold text-xs shadow-sm transition-all"
+                    >
+                      <FileCheck2 size={14} />
+                      <span>Review & Approve Release →</span>
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => setApprovalModal(true)}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      width: "100%", padding: "10px 14px", borderRadius: 6,
-                      border: "none", background: "#D97706",
-                      color: "#FFFFFF", fontSize: "0.8rem", fontWeight: 800, cursor: "pointer",
-                      boxShadow: "0 2px 6px rgba(217, 119, 6, 0.25)",
+                    onClick={() => {
+                      setEvidenceTargetMilestone(nextMilestone);
+                      setEvidenceModal(true);
                     }}
+                    className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded bg-[#EEF5FC] hover:bg-[#DBEAFE] text-[#0B2A5B] font-bold text-xs border border-[#BFDBFE] transition-colors"
                   >
-                    <FileCheck2 size={14} /> Review & Approve
-                  </button>
-                  <button
-                    onClick={() => setEvidenceModal(true)}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      width: "100%", padding: "8px 14px", borderRadius: 6,
-                      border: "1px solid var(--line)", background: "#FFFFFF",
-                      color: "var(--ink-mid)", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
-                    }}
-                  >
-                    <Eye size={13} /> View Evidence
+                    <Eye size={13} />
+                    <span>View Supporting Evidence ({nextMilestone.evidenceCount || 3} items)</span>
                   </button>
                 </div>
               </div>
-            </Panel>
+
+              <div className="p-3 bg-[#F8FAFC] border-t border-[#D9E1EA] text-[10px] text-center text-[#5E6B7E]">
+                Official decision-support gate · Approval generates verifiable audit log record.
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#D9E1EA] rounded-lg p-6 text-center text-xs text-[#5E6B7E]">
+              <CheckCircle2 size={24} className="text-[#16834B] mx-auto mb-2" />
+              <p className="font-bold text-[#172033]">All Milestones Released</p>
+              <p className="text-[11px] mt-1">This procurement case has reached final disbursement.</p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         9. FINANCIAL GOVERNANCE & QUICK LINKS
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          9. FINANCIAL GOVERNANCE & QUICK LINKS
+          ═══════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Financial Governance */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px 18px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Shield size={16} style={{ color: "var(--gov-navy)" }} />
-            <h3 style={{ fontSize: "0.84rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
-              FINANCIAL GOVERNANCE
+        {/* Governance Info Panel */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Shield size={16} className="text-[#0B2A5B]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
+              FINANCIAL GOVERNANCE & INTEGRATION
             </h3>
           </div>
-          <p style={{ fontSize: "0.76rem", color: "var(--ink-mid)", lineHeight: 1.6, margin: 0 }}>
-            "All releases are subject to departmental approval, compliance checks and audit trail requirements."
+          <p className="text-xs text-[#5E6B7E] leading-relaxed">
+            PRAMAN provides milestone-based financial decision support. Milestone eligibility does not automatically
+            release funds. Financial progression requires validated telemetry evidence + milestone completion + authorized officer review.
           </p>
-          <div style={{
-            padding: "8px 12px", borderRadius: 5, background: "#EFF6FF", border: "1px solid #BFDBFE",
-            fontSize: "0.7rem", color: "#1D4ED8", fontWeight: 600, display: "flex", alignItems: "center", gap: 6
-          }}>
-            <Landmark size={13} />
-            Integrated with Public Financial Management System (PFMS) & GeM Gateways.
+          <div className="p-2.5 rounded bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] text-[#1D4ED8] flex items-center gap-2 font-medium">
+            <Landmark size={14} className="shrink-0" />
+            <span>Integrated with Public Financial Management System (PFMS) & GeM Procurement Gateways.</span>
           </div>
         </div>
 
-        {/* Quick Links */}
-        <div style={{
-          background: "#FFFFFF", border: "1px solid var(--line)", borderRadius: 8,
-          padding: "16px 18px", boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-          display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 10
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <FileText size={16} style={{ color: "var(--gov-blue)" }} />
-            <h3 style={{ fontSize: "0.84rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
-              QUICK LINKS
+        {/* Quick Reports / Actions */}
+        <div className="bg-white border border-[#D9E1EA] rounded-lg p-4 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-[#0B2A5B]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#172033]">
+              FINANCIAL DOCUMENTS & REPORTS
             </h3>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
             <button
-              onClick={() => handleDownloadReport()}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 5,
-                background: "#F8FAFC", border: "1px solid var(--line)", color: "var(--ink)",
-                fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", textAlign: "left"
-              }}
+              onClick={handleDownloadReport}
+              className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] hover:bg-slate-100 text-[#172033] flex items-center gap-2 text-left"
             >
-              <FileText size={13} style={{ color: "var(--gov-blue)" }} />
-              Budget Documents
+              <FileText size={13} className="text-[#0B2A5B]" />
+              <span>Budget Allocation Order</span>
             </button>
             <button
-              onClick={() => handleDownloadReport()}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 5,
-                background: "#F8FAFC", border: "1px solid var(--line)", color: "var(--ink)",
-                fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", textAlign: "left"
-              }}
+              onClick={handleDownloadReport}
+              className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] hover:bg-slate-100 text-[#172033] flex items-center gap-2 text-left"
             >
-              <BarChart3 size={13} style={{ color: "var(--gov-blue)" }} />
-              Utilization Reports
+              <BarChart3 size={13} className="text-[#0B2A5B]" />
+              <span>Utilization Certificate</span>
             </button>
             <button
-              onClick={() => handleDownloadReport()}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 5,
-                background: "#F8FAFC", border: "1px solid var(--line)", color: "var(--ink)",
-                fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", textAlign: "left"
-              }}
+              onClick={handleDownloadReport}
+              className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] hover:bg-slate-100 text-[#172033] flex items-center gap-2 text-left"
             >
-              <ShieldCheck size={13} style={{ color: "#16834B" }} />
-              Audit Trail
+              <ShieldCheck size={13} className="text-[#16834B]" />
+              <span>Financial Audit Trail</span>
             </button>
             <button
-              onClick={() => handleDownloadReport()}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 5,
-                background: "#F8FAFC", border: "1px solid var(--line)", color: "var(--ink)",
-                fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", textAlign: "left"
-              }}
+              onClick={handleDownloadReport}
+              className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] hover:bg-slate-100 text-[#172033] flex items-center gap-2 text-left"
             >
-              <Download size={13} style={{ color: "var(--gov-navy)" }} />
-              Export to PDF
+              <Download size={13} className="text-[#0B2A5B]" />
+              <span>Full Export (PDF)</span>
             </button>
           </div>
         </div>
-
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         10. REVIEW & APPROVE MODAL (Officer Decision Workflow)
-         ═══════════════════════════════════════════════════════════════ */}
-      {approvalModal && nextMilestone && (
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL 1: REVIEW FINANCIAL MILESTONE MODAL
+          ═══════════════════════════════════════════════════════════ */}
+      {approvalModal && (approvalTargetMilestone || nextMilestone) && (
         <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(10, 37, 64, 0.6)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16,
-          }}
+          className="fixed inset-0 z-50 bg-[#0A2540]/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setApprovalModal(false)}
         >
           <div
+            className="bg-white rounded-lg border border-[#D9E1EA] max-w-lg w-full shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "white", borderRadius: 10, border: "1px solid var(--line)",
-              width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            }}
           >
-            {/* Modal header */}
-            <div style={{
-              padding: "16px 20px", borderBottom: "1px solid var(--line)",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: "#F8FAFC", borderRadius: "10px 10px 0 0"
-            }}>
+            <div className="bg-[#0B2A5B] px-6 py-4 text-white flex items-center justify-between">
               <div>
-                <p style={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: "#D97706", margin: "0 0 2px" }}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                   Officer Authorization Gate
-                </p>
-                <h3 style={{ fontSize: "1rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
-                  Review & Approve Milestone Release
-                </h3>
+                </span>
+                <h3 className="text-sm font-bold">REVIEW FINANCIAL MILESTONE</h3>
               </div>
               <button
                 onClick={() => setApprovalModal(false)}
-                style={{ padding: 4, border: "none", background: "none", cursor: "pointer", color: "var(--ink-soft)" }}
+                className="text-white/70 hover:text-white"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal body */}
-            <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Milestone info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, background: "#F8FAFC", padding: "12px 14px", borderRadius: 6, border: "1px solid var(--line)" }}>
-                <div>
-                  <p className="gov-section-label" style={{ marginBottom: 2 }}>Milestone</p>
-                  <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--ink)", margin: 0 }}>{nextMilestone.milestone}</p>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="p-3.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5E6B7E]">Milestone Name:</span>
+                  <span className="font-bold text-[#172033]">
+                    {(approvalTargetMilestone || nextMilestone)?.milestone}
+                  </span>
                 </div>
-                <div>
-                  <p className="gov-section-label" style={{ marginBottom: 2 }}>Amount</p>
-                  <p style={{ fontSize: "1.05rem", fontWeight: 900, color: "#D97706", margin: 0, fontFamily: "monospace" }}>{formatINR(nextMilestone.amount)}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5E6B7E]">Amount to Authorize:</span>
+                  <span className="font-black text-[#D97706] font-mono text-base">
+                    {formatINR((approvalTargetMilestone || nextMilestone)?.amount || 0)}
+                  </span>
                 </div>
-                <div>
-                  <p className="gov-section-label" style={{ marginBottom: 2 }}>Purpose</p>
-                  <p style={{ fontSize: "0.76rem", color: "var(--ink-mid)", margin: 0 }}>30-day evaluation report & detection accuracy verification</p>
-                </div>
-                <div>
-                  <p className="gov-section-label" style={{ marginBottom: 2 }}>Trigger</p>
-                  <p style={{ fontSize: "0.76rem", color: "var(--ink-mid)", margin: 0 }}>30-day evaluation report + KPI ≥85%</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5E6B7E]">Linked PRAMAN Stage:</span>
+                  <span className="font-semibold text-[#0B2A5B]">
+                    {(approvalTargetMilestone || nextMilestone)?.stage}
+                  </span>
                 </div>
               </div>
 
-              {/* Conditions Checklist */}
-              <div>
-                <p className="gov-section-label" style={{ marginBottom: 6 }}>Pre-Release Evidence Gates</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {nextMilestone.conditions?.map((c, i) => (
-                    <div key={i} style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      fontSize: "0.76rem", color: c.met ? "#166534" : "var(--ink-mid)",
-                      fontWeight: c.met ? 600 : 400, padding: "6px 10px", borderRadius: 4,
-                      background: c.met ? "#F0FDF4" : "#F8FAFC",
-                      border: `1px solid ${c.met ? "#BBF7D0" : "var(--line)"}`,
-                    }}>
-                      {c.met ? <CheckCircle2 size={13} style={{ color: "#16834B" }} /> : <Clock size={13} style={{ color: "#D97706" }} />}
+              {/* Release Conditions in Modal */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-[#172033] uppercase text-[10px] tracking-wider">
+                  Release Conditions Status:
+                </span>
+                <div className="space-y-1">
+                  {(approvalTargetMilestone || nextMilestone)?.conditions?.map((c, i) => (
+                    <div
+                      key={i}
+                      className={`p-2 rounded border flex items-center gap-2 text-[11px] ${
+                        c.met ? "bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]" : "bg-[#F8FAFC] border-[#D9E1EA] text-[#64748B]"
+                      }`}
+                    >
+                      {c.met ? <CheckCircle2 size={12} className="text-[#16834B]" /> : <Clock size={12} className="text-[#D97706]" />}
                       <span>{c.text}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Warning Notice */}
-              <div style={{
-                padding: "10px 14px", borderRadius: 6,
-                background: "#FEF3C7", border: "1px solid #FDE68A",
-                fontSize: "0.74rem", color: "#92400E", fontWeight: 600,
-                display: "flex", alignItems: "flex-start", gap: 8,
-              }}>
-                <AlertTriangle size={15} style={{ color: "#D97706", flexShrink: 0, marginTop: 1 }} />
-                <span>Officer authorization generates a digitally-signed fund release voucher recorded in the blockchain-anchored audit trail.</span>
+              {/* Official Governance Notice */}
+              <div className="p-3 rounded bg-[#FEF3C7] border border-[#FDE68A] text-[11px] text-[#92400E] flex items-start gap-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  <strong>Governance Policy:</strong> Approval records milestone eligibility in the PRAMAN workflow.
+                  It does not execute an immediate commercial financial transfer.
+                </span>
               </div>
             </div>
 
-            {/* Modal actions: [ Approve Release ] [ Request More Evidence ] [ Reject ] */}
-            <div style={{
-              padding: "14px 20px", borderTop: "1px solid var(--line)",
-              background: "#F8FAFC", borderRadius: "0 0 10px 10px",
-              display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end",
-            }}>
+            <div className="px-6 py-3.5 bg-[#F8FAFC] border-t border-[#D9E1EA] flex flex-wrap gap-2 justify-end">
               <button
-                onClick={() => handleApprovalAction("Approve Release")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 18px", borderRadius: 6, fontSize: "0.78rem", fontWeight: 800,
-                  background: "#16834B", color: "white", border: "none", cursor: "pointer",
-                  boxShadow: "0 2px 6px rgba(22, 131, 75, 0.2)",
-                }}
+                onClick={() => handleApprovalAction("Reject")}
+                className="px-3.5 py-2 text-xs font-bold text-[#DC2626] bg-white border border-[#FECACA] hover:bg-[#FEF2F2] rounded"
               >
-                <CheckCircle2 size={14} /> Approve Release
+                Reject Release
               </button>
               <button
                 onClick={() => handleApprovalAction("Request More Evidence")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px", borderRadius: 6, fontSize: "0.78rem", fontWeight: 700,
-                  background: "#FFFFFF", color: "var(--gov-blue)", border: "1px solid #BFDBFE", cursor: "pointer",
-                }}
+                className="px-3.5 py-2 text-xs font-bold text-[#0B2A5B] bg-[#EEF5FC] border border-[#BFDBFE] hover:bg-[#DBEAFE] rounded"
               >
-                <FileCheck2 size={14} /> Request More Evidence
+                Request More Evidence
               </button>
               <button
-                onClick={() => handleApprovalAction("Reject")}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px", borderRadius: 6, fontSize: "0.78rem", fontWeight: 700,
-                  background: "#FFFFFF", color: "#DC2626", border: "1px solid #FECACA", cursor: "pointer",
-                }}
+                onClick={() => handleApprovalAction("Approve Milestone")}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#16834B] hover:bg-[#136f3f] rounded transition-colors shadow-sm"
               >
-                <X size={14} /> Reject
+                Approve Milestone →
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════
-         11. EVIDENCE DETAIL MODAL
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════
+          MODAL 2: EVIDENCE DETAIL MODAL
+          ═══════════════════════════════════════════════════════════ */}
       {evidenceModal && (
         <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 100,
-            background: "rgba(10, 37, 64, 0.6)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16,
-          }}
+          className="fixed inset-0 z-50 bg-[#0A2540]/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setEvidenceModal(false)}
         >
           <div
+            className="bg-white rounded-lg border border-[#D9E1EA] max-w-lg w-full shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "white", borderRadius: 10, border: "1px solid var(--line)",
-              width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            }}
           >
-            <div style={{
-              padding: "16px 20px", borderBottom: "1px solid var(--line)",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: "#F8FAFC", borderRadius: "10px 10px 0 0"
-            }}>
+            <div className="bg-[#0B2A5B] px-6 py-4 text-white flex items-center justify-between">
               <div>
-                <p style={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--gov-blue)", margin: "0 0 2px" }}>
-                  Evidence Locker Records
-                </p>
-                <h3 style={{ fontSize: "0.96rem", fontWeight: 800, color: "var(--gov-navy)", margin: 0 }}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/70">
                   Cryptographic Evidence Trail
+                </span>
+                <h3 className="text-sm font-bold">
+                  {evidenceTargetMilestone?.milestone || "Milestone Evidence Records"}
                 </h3>
               </div>
               <button
                 onClick={() => setEvidenceModal(false)}
-                style={{ padding: 4, border: "none", background: "none", cursor: "pointer", color: "var(--ink-soft)" }}
+                className="text-white/70 hover:text-white"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ padding: "10px 12px", background: "#F8FAFC", border: "1px solid var(--line)", borderRadius: 6 }}>
-                <p style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--gov-navy)", margin: "0 0 4px" }}>
-                  Attached Telemetry & Milestone Proofs
-                </p>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.74rem", color: "var(--ink-mid)", lineHeight: 1.6 }}>
-                  <li>Signed Pilot Agreement & MoU (SHA-256: <code>e8b4...12f9</code>)</li>
-                  <li>Initial Telemetry Ingestion Log (1,420,000 datapoints)</li>
-                  <li>30-Day Automated Evaluation Report (Pending Officer Gate)</li>
-                </ul>
-              </div>
-              <p style={{ fontSize: "0.72rem", color: "var(--ink-soft)", margin: 0 }}>
-                All evidence artifacts are timestamped and cryptographically anchored in the PRAMAN Evidence Locker.
+            <div className="p-6 space-y-3.5 text-xs">
+              <p className="text-[#5E6B7E]">
+                Attached telemetry datasets, verified reports, and audit artifacts anchored in the PRAMAN Evidence Locker:
               </p>
+
+              <div className="space-y-2">
+                <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileCheck2 size={15} className="text-[#16834B]" />
+                    <div>
+                      <p className="font-bold text-[#172033]">MoU & Pilot Initiation Document</p>
+                      <p className="text-[10px] text-[#5E6B7E]">SHA-256: <code>e8b4...12f9</code></p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#16834B] bg-[#DCFCE7] px-2 py-0.5 rounded">Verified</span>
+                </div>
+
+                <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileCheck2 size={15} className="text-[#16834B]" />
+                    <div>
+                      <p className="font-bold text-[#172033]">Raw Fleet Telemetry Ingestion Log</p>
+                      <p className="text-[10px] text-[#5E6B7E]">1,420,000 datapoints · PMPML buses</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#16834B] bg-[#DCFCE7] px-2 py-0.5 rounded">Verified</span>
+                </div>
+
+                <div className="p-2.5 rounded bg-[#F8FAFC] border border-[#D9E1EA] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock size={15} className="text-[#D97706]" />
+                    <div>
+                      <p className="font-bold text-[#172033]">30-Day Automated Evaluation Report</p>
+                      <p className="text-[10px] text-[#5E6B7E]">Awaiting Final Officer Gate</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-[#B45309] bg-[#FEF3C7] px-2 py-0.5 rounded">Review</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded bg-[#EFF6FF] border border-[#BFDBFE] text-[11px] text-[#1D4ED8]">
+                All evidence artifacts are cryptographically signed and immutable.
+              </div>
             </div>
 
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", background: "#F8FAFC", display: "flex", justifyContent: "flex-end" }}>
+            <div className="px-6 py-3.5 bg-[#F8FAFC] border-t border-[#D9E1EA] flex justify-end">
               <button
                 onClick={() => setEvidenceModal(false)}
-                style={{
-                  padding: "6px 14px", borderRadius: 5, fontSize: "0.75rem", fontWeight: 700,
-                  background: "var(--gov-navy)", color: "#FFFFFF", border: "none", cursor: "pointer"
-                }}
+                className="px-4 py-2 text-xs font-bold text-[#0B2A5B] bg-[#EEF5FC] hover:bg-[#DBEAFE] border border-[#BFDBFE] rounded"
               >
-                Close
+                Close Evidence Viewer
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
