@@ -98,9 +98,9 @@ const PRIMARY_NAV_GOV: NavLinkItem[] = [
   {
     label: "Governance & Audit",
     href: "/audit",
-    subRoutes: ["/audit", "/risk", "/transparency", "/replay"],
+    subRoutes: ["/audit", "/governance-audit", "/risk", "/transparency", "/replay"],
     dropdownItems: [
-      { label: "Append-Only Audit Trail", href: "/audit", desc: "SHA-256 verifiable event log" },
+      { label: "Official Audit Trail", href: "/governance-audit", desc: "Track actions, approvals & change history" },
       { label: "Procurement Risk Radar", href: "/risk", desc: "Proactive risk & anomaly indicators" },
       { label: "Public Transparency Portal", href: "/transparency", desc: "Open public scrutiny view" },
       { label: "Decision Replay Audit", href: "/replay", desc: "Historical decision step simulation" },
