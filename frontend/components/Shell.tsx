@@ -69,9 +69,9 @@ const PRIMARY_NAV_GOV: NavLinkItem[] = [
   {
     label: "Pilot & Evidence",
     href: "/pilots",
-    subRoutes: ["/pilots", "/evidence", "/analytics"],
+    subRoutes: ["/pilots", "/pilot-evidence", "/evidence", "/analytics"],
     dropdownItems: [
-      { label: "90-Day Sandbox Pilots", href: "/pilots", desc: "Controlled pilot telemetry & milestones" },
+      { label: "Pilot Progress & Evidence", href: "/pilot-evidence", desc: "Controlled pilot telemetry & milestones" },
       { label: "Evidence Locker & Hashing", href: "/evidence", desc: "Tamper-evident cryptographic verification" },
       { label: "Performance Analytics", href: "/analytics", desc: "KPI telemetry & outcome analytics" },
     ],
