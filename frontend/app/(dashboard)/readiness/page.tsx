@@ -203,11 +203,11 @@ const CASES_DATA: CaseReadinessData[] = [
   },
   {
     id: "PRB-MH-2026-1045",
-    title: "AI-Assisted Telemedicine Triage for Rural Primary Health Centers",
-    department: "Health & Family Welfare",
+    title: "Urban Air Quality Monitoring & Particulate Telemetry",
+    department: "Urban Development Department",
     location: "Nagpur",
-    timeline: "180 Days",
-    budget: "₹2.20 Cr",
+    timeline: "90 Days",
+    budget: "₹95 Lakh",
     status: "In Progress",
     currentStage: "PILOT EVALUATION & READINESS",
     financialYear: "FY 2026–27",
@@ -215,26 +215,26 @@ const CASES_DATA: CaseReadinessData[] = [
     readinessBand: "High Readiness",
     evidencePct: 91,
     evidenceItems: "21 / 23 items",
-    nextMilestoneAmount: "₹50L",
-    nextMilestoneName: "Mid-Term Triage Accuracy",
+    nextMilestoneAmount: "₹30L",
+    nextMilestoneName: "CPCB Reference Co-Location Benchmark",
     nextMilestoneStatus: "Pending Approval",
     activeBlockerCount: 1,
-    blockerTitle: "EHR Patient Data Residency Audit",
+    blockerTitle: "CPCB Reference Co-Location Telemetry Sign-off",
     blockerProgress: "85% complete",
-    blockerDesc: "Verify encryption keys and DISHA compliance for rural tele-consultation archives.",
+    blockerDesc: "Awaiting final co-location correlation validation report (R2 ≥ 0.92) from regional scientific officer.",
     dimensions: [
-      { name: "Technical Validation", score: 19, max: 20, status: "pass", desc: "Clinical concordancy validated at 92.4% across 5,000 consults" },
-      { name: "Pilot Performance", score: 19, max: 20, status: "pass", desc: "20 rural PHC diagnostic stations streaming telemetry" },
-      { name: "Evidence Completeness", score: 18, max: 20, status: "pass", desc: "Blinded district medical officer audit logs logged" },
-      { name: "Compliance", score: 15, max: 15, status: "pass", desc: "State Ethics Board and ICMR clearance approved" },
-      { name: "Budget Alignment", score: 10, max: 10, status: "pass", desc: "Co-funded with National Health Mission" },
-      { name: "Security & Data", score: 8, max: 15, status: "attention", desc: "DISHA patient data residency self-audit complete" },
+      { name: "Technical Validation", score: 19, max: 20, status: "pass", desc: "Co-location R2 correlation validated at 0.948 across 50 sensor pods" },
+      { name: "Pilot Performance", score: 19, max: 20, status: "pass", desc: "50 solar IoT pods streaming continuous particulate telemetry" },
+      { name: "Evidence Completeness", score: 18, max: 20, status: "pass", desc: "21 verified dataset uploads in Evidence Locker" },
+      { name: "Compliance", score: 15, max: 15, status: "pass", desc: "MPCB and National Clean Air Programme approvals cleared" },
+      { name: "Budget Alignment", score: 10, max: 10, status: "pass", desc: "Aligned with Urban Development NCAP allocation" },
+      { name: "Security & Data", score: 8, max: 15, status: "attention", desc: "State Data Center API integration telemetry pending sign-off" },
     ],
     financialPlan: [
-      { name: "Ethics Protocol Clearance", amount: "₹0", status: "Completed" },
-      { name: "Diagnostic Hub Setup", amount: "₹40L", status: "Released" },
-      { name: "Mid-Term Triage Review", amount: "₹50L", status: "Pending Approval" },
-      { name: "Clinical Safety Audit", amount: "₹30L", status: "Locked" },
+      { name: "Baseline Approval", amount: "₹0", status: "Completed" },
+      { name: "Sensor Pod Grid Setup", amount: "₹25L", status: "Released" },
+      { name: "CPCB Reference Benchmark", amount: "₹30L", status: "Pending Approval" },
+      { name: "Hotspot Anomaly Dossier", amount: "₹15L", status: "Locked" },
     ],
     handoffReadyCount: 6,
     handoffTotalCount: 7,
@@ -253,15 +253,28 @@ const CASES_DATA: CaseReadinessData[] = [
 
 export default function ReadinessPage() {
   const {
+    selectedCaseId: contextSelectedCaseId, selectCase,
     pilot, readiness, calculateReadiness, submitDecision,
     decisionReason, setDecisionReason, decision, loading, error, setTrace
   } = usePraman();
 
   // Selected Case State
-  const [selectedCaseId, setSelectedCaseId] = useState<string>("PRB-MH-2026-1042");
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(contextSelectedCaseId || "PRB-MH-2026-1042");
   const [selectedDept, setSelectedDept] = useState<string>("All Departments");
   const [selectedStatus, setSelectedStatus] = useState<string>("All Statuses");
   const [selectedFY, setSelectedFY] = useState<string>("All Years");
+
+  // Keep selectedCaseId synchronized with contextSelectedCaseId
+  React.useEffect(() => {
+    if (contextSelectedCaseId && contextSelectedCaseId !== selectedCaseId) {
+      setSelectedCaseId(contextSelectedCaseId);
+    }
+  }, [contextSelectedCaseId]);
+
+  const handleCaseSelect = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    selectCase(caseId);
+  };
 
   // Modals & User Actions
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
@@ -288,16 +301,16 @@ export default function ReadinessPage() {
     return filteredCases[0] || CASES_DATA[0];
   }, [filteredCases, selectedCaseId]);
 
-  // If live readiness context is available for PRB-MH-2026-1042, blend it safely
+  // If live readiness context is available, blend it safely
   const currentReadinessScore =
-    activeCase.id === "PRB-MH-2026-1042" && readiness?.score ? readiness.score : activeCase.readinessScore;
+    activeCase.id === contextSelectedCaseId && readiness?.score ? readiness.score : activeCase.readinessScore;
   const currentReadinessBand =
-    activeCase.id === "PRB-MH-2026-1042" && readiness?.band ? readiness.band : activeCase.readinessBand;
+    activeCase.id === contextSelectedCaseId && readiness?.band ? readiness.band : activeCase.readinessBand;
 
   // Handle Decision Confirmation
   const handleConfirmDecision = async () => {
     setDecisionModalOpen(false);
-    await submitDecision();
+    await submitDecision(selectedDecisionAction);
     setDecisionSuccessToast(true);
     setTimeout(() => setDecisionSuccessToast(false), 5000);
   };
@@ -312,7 +325,7 @@ export default function ReadinessPage() {
     setSelectedDept("All Departments");
     setSelectedStatus("All Statuses");
     setSelectedFY("All Years");
-    setSelectedCaseId("PRB-MH-2026-1042");
+    handleCaseSelect("PRB-MH-2026-1042");
   };
 
   return (
@@ -343,7 +356,7 @@ export default function ReadinessPage() {
           {/* Case Selector */}
           <select
             value={activeCase.id}
-            onChange={(e) => setSelectedCaseId(e.target.value)}
+            onChange={(e) => handleCaseSelect(e.target.value)}
             className="p-1.5 px-2.5 text-xs font-bold text-[#0B2A5B] bg-[#EFF6FF] border border-[#BFDBFE] rounded focus:outline-none focus:ring-1 focus:ring-[#0B2A5B] cursor-pointer"
           >
             {filteredCases.map((c) => (

@@ -301,87 +301,75 @@ const PROCUREMENT_CASES: ProcurementCase[] = [
   },
   {
     id: "PRB-MH-2026-1045",
-    title: "AI-Assisted Telemedicine Triage for Rural Primary Health Centers",
-    department: "Health & Family Welfare",
-    location: "Nagpur & Gadchiroli Districts",
-    domain: "Public Healthcare",
-    technology: "Clinical NLP & Edge Diagnostics",
-    timeline: "180 Days",
+    title: "Urban Air Quality Monitoring & Particulate Telemetry",
+    department: "Urban Development Department",
+    location: "Nagpur",
+    domain: "Environment / Smart Cities",
+    technology: "IoT Sensors + Data Analytics",
+    timeline: "90 Days",
     financialYear: "FY 2026–27",
     status: "In Progress",
-    totalValue: 22000000, // ₹2.20 Cr
-    currentStage: "Pilot & Evidence",
-    currentStageIndex: 4,
+    totalValue: 9500000, // ₹95L
+    currentStage: "Government Review",
+    currentStageIndex: 5,
     milestones: [
       {
         id: 1,
         stage: "Requirement",
-        milestone: "Clinical Protocol Formulation & Ethics Clearance",
+        milestone: "Air Quality Baseline & Grid Topology Approval",
         amount: 0,
-        trigger: "State Health Directorate ethical clearance & PHC selection",
+        trigger: "MPCB and Urban Development approval of 50 sensor locations",
         status: "Completed",
       },
       {
         id: 2,
         stage: "Pilot",
-        milestone: "PHC Diagnostic Hub Deployment (20 Centers)",
-        amount: 4000000, // ₹40L
-        trigger: "Tablets and diagnostic peripherals installed across 20 rural PHCs",
+        milestone: "Hyperlocal Sensor Pod Grid Installation (50 Pods)",
+        amount: 2500000, // ₹25L
+        trigger: "50 solar IoT pods deployed in Nagpur industrial & traffic zones",
         status: "Released",
-        evidenceCount: 5,
+        evidenceCount: 4,
       },
       {
         id: 3,
         stage: "Pilot",
-        milestone: "Mid-Term Patient Triage Accuracy Review",
-        amount: 5000000, // ₹50L
-        trigger: "5,000 rural tele-consultations logged with ≥92% triage concordancy",
+        milestone: "CPCB Reference Co-Location Benchmark (30 Days)",
+        amount: 3000000, // ₹30L
+        trigger: "30-day co-location data showing R2 correlation ≥0.92 with reference station",
         status: "Pending Approval",
-        evidenceCount: 6,
+        evidenceCount: 5,
         conditions: [
-          { text: "20 rural PHC diagnostic stations streaming telemetry", met: true },
-          { text: "5,000 encrypted patient triage records logged", met: true },
-          { text: "District Medical Officer blinded audit verification", met: true },
-          { text: "Triage concordancy score verified (≥92% accuracy)", met: false },
-          { text: "Health Secretary milestone release sign-off", met: false },
+          { text: "50 solar IoT sensor pods operating continuously", met: true },
+          { text: "CPCB co-location telemetry log compiled (2.1M data points)", met: true },
+          { text: "R2 correlation coefficient verified at 0.948 (target ≥0.92)", met: true },
+          { text: "MPCB regional scientific officer review sign-off", met: true },
+          { text: "Urban Development Department financial sanction release", met: false },
         ],
       },
       {
         id: 4,
         stage: "Evidence",
-        milestone: "Clinical Safety & Referral Audit",
-        amount: 3000000, // ₹30L
-        trigger: "Zero missed critical triage events over 90-day evaluation",
+        milestone: "90-Day Hotspot Anomaly Telemetry Dossier",
+        amount: 1500000, // ₹15L
+        trigger: "Final 90-day pilot completion & pollution hotspot algorithm audit",
         status: "Locked",
-        lockedReason: "Mid-term triage accuracy review (Milestone #3) is pending.",
+        lockedReason: "Co-location benchmark review (Milestone #3) is pending.",
         prerequisites: [
-          { name: "5,000 Consultation Review", status: "pending" },
-          { name: "Indian Council of Medical Research Audit", status: "missing" },
+          { name: "30-Day Co-Location Benchmark", status: "pending" },
+          { name: "Continuous NAQI Stream Verification", status: "met" },
         ],
       },
       {
         id: 5,
         stage: "Procurement",
-        milestone: "State-wide Telemedicine Scale-up Award",
-        amount: 7000000, // ₹70L
-        trigger: "Procurement readiness approval & National Health Mission co-funding",
+        milestone: "State-wide Hyperlocal Air Monitoring Rollout",
+        amount: 2500000, // ₹25L
+        trigger: "Final procurement approval & State Clean Air Action Plan funding",
         status: "Locked",
-        lockedReason: "Clinical safety evidence is not yet finalized.",
+        lockedReason: "Final procurement decision gate pending.",
         prerequisites: [
-          { name: "Clinical Safety Report", status: "missing" },
-          { name: "NHM Sanction Order", status: "missing" },
-        ],
-      },
-      {
-        id: 6,
-        stage: "Deployment",
-        milestone: "District Hospital Tele-ICU Grid Integration",
-        amount: 3000000, // ₹30L
-        trigger: "Integration across 150 PHCs and 12 district hospitals",
-        status: "Locked",
-        lockedReason: "State-wide award pending execution.",
-        prerequisites: [
-          { name: "State Cloud Infrastructure Grid", status: "missing" },
+          { name: "Full Pilot Dossier Validation", status: "missing" },
+          { name: "State Clean Air Sanction", status: "missing" },
         ],
       },
     ],
@@ -494,8 +482,9 @@ function CustomBarTooltip({ active, payload, label, mode }: { active?: boolean; 
    ═══════════════════════════════════════════════════════════════ */
 
 export default function FinancialMilestonesPage() {
-  const { problem } = usePraman();
+  const { selectedCaseId: contextSelectedCaseId, selectCase, approveFinancialMilestone } = usePraman();
   const [mounted, setMounted] = useState(false);
+  const [allCases, setAllCases] = useState<ProcurementCase[]>(PROCUREMENT_CASES);
 
   useEffect(() => {
     setMounted(true);
@@ -503,10 +492,22 @@ export default function FinancialMilestonesPage() {
 
   // ── Filters & Case Selection State ──────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCaseId, setSelectedCaseId] = useState("PRB-MH-2026-1042");
+  const [selectedCaseId, setSelectedCaseId] = useState(contextSelectedCaseId || "PRB-MH-2026-1042");
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [selectedFY, setSelectedFY] = useState("All Years");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
+
+  // Keep selectedCaseId synchronized with contextSelectedCaseId
+  useEffect(() => {
+    if (contextSelectedCaseId && contextSelectedCaseId !== selectedCaseId) {
+      setSelectedCaseId(contextSelectedCaseId);
+    }
+  }, [contextSelectedCaseId]);
+
+  const handleCaseSelect = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    selectCase(caseId);
+  };
 
   // Fund Distribution Toggle: Amount vs Percentage
   const [distributionMode, setDistributionMode] = useState<"amount" | "percentage">("amount");
@@ -526,7 +527,7 @@ export default function FinancialMilestonesPage() {
 
   // ── Multi-Case Filtering Logic ──────────────────────────────
   const filteredCases = useMemo(() => {
-    return PROCUREMENT_CASES.filter((c) => {
+    return allCases.filter((c) => {
       // Search filter (Case ID, title, or department)
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -550,14 +551,14 @@ export default function FinancialMilestonesPage() {
 
       return matchesSearch && matchesDept && matchesFY && matchesStatus;
     });
-  }, [searchQuery, selectedDepartment, selectedFY, selectedStatus]);
+  }, [allCases, searchQuery, selectedDepartment, selectedFY, selectedStatus]);
 
   // Keep selected case updated if filtered
   const activeCase = useMemo(() => {
     const found = filteredCases.find((c) => c.id === selectedCaseId);
     if (found) return found;
-    return filteredCases[0] || PROCUREMENT_CASES[0];
-  }, [filteredCases, selectedCaseId]);
+    return filteredCases[0] || allCases[0];
+  }, [filteredCases, selectedCaseId, allCases]);
 
   // Single source of truth: Milestones of the active case
   const milestones = activeCase.milestones || [];
@@ -694,6 +695,26 @@ export default function FinancialMilestonesPage() {
   // Handlers
   function handleApprovalAction(action: string) {
     setApprovalAction(action);
+    if (action === "Approve Milestone") {
+      const target = approvalTargetMilestone || nextMilestone;
+      if (target) {
+        setAllCases((prev) =>
+          prev.map((c) => {
+            if (c.id === activeCase.id) {
+              const updatedMilestones = c.milestones.map((m) => {
+                if (m.id === target.id) {
+                  return { ...m, status: "Released" as const };
+                }
+                return m;
+              });
+              return { ...c, milestones: updatedMilestones };
+            }
+            return c;
+          })
+        );
+        approveFinancialMilestone(target.id);
+      }
+    }
     setTimeout(() => {
       setApprovalModal(false);
       setApprovalDone(true);
@@ -711,7 +732,7 @@ export default function FinancialMilestonesPage() {
     setSelectedDepartment("All Departments");
     setSelectedFY("All Years");
     setSelectedStatus("All Statuses");
-    setSelectedCaseId("PRB-MH-2026-1042");
+    handleCaseSelect("PRB-MH-2026-1042");
   }
 
   return (
@@ -796,7 +817,7 @@ export default function FinancialMilestonesPage() {
           <div className="lg:col-span-3">
             <select
               value={activeCase.id}
-              onChange={(e) => setSelectedCaseId(e.target.value)}
+              onChange={(e) => handleCaseSelect(e.target.value)}
               className="w-full p-2 text-xs font-bold text-[#0B2A5B] bg-[#EFF6FF] border border-[#BFDBFE] rounded focus:outline-none focus:ring-1 focus:ring-[#0B2A5B] cursor-pointer"
             >
               {filteredCases.map((c) => (

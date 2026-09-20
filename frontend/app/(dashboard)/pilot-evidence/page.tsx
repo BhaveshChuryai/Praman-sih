@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { GovPageHeader, AlertBanner, kpiTrace } from "@/components/ui";
 import { Badge } from "@/components/Badge";
@@ -166,7 +166,7 @@ const PILOT_CASES_DATA: CasePilotData[] = [
     caseId: "PRB-MH-2026-1043",
     pilotId: "PIL-MH-2026-023",
     title: "URBAN WATER LEAKAGE & DISTRIBUTION NETWORK TELEMETRY",
-    department: "Mumbai Municipal Corporation",
+    department: "Municipal Corporation",
     startup: "AquaPulse Dynamics",
     location: "Mumbai Suburban - Ward K/East",
     budget: "₹1.50 Cr",
@@ -238,132 +238,132 @@ const PILOT_CASES_DATA: CasePilotData[] = [
   {
     caseId: "PRB-MH-2026-1044",
     pilotId: "PIL-MH-2026-024",
-    title: "AI EDGE TRAFFIC CONGESTION REDUCTION SYSTEM",
-    department: "Nagpur Smart City SPV",
-    startup: "NeuralFlow Labs",
-    location: "Nagpur Corridor 1 & 2",
-    budget: "₹85.00 Lakh",
+    title: "SMART WASTE COLLECTION & ROUTE OPTIMIZATION",
+    department: "Municipal Corporation",
+    startup: "CleanRoute AI",
+    location: "Nashik Central & CIDCO Zones",
+    budget: "₹80.00 Lakh",
     pilotStatus: "IN PROGRESS",
-    pilotDurationDays: 90,
-    currentDay: 68,
+    pilotDurationDays: 60,
+    currentDay: 52,
     currentStage: "EVALUATION",
     financialYear: "FY 2026–27",
     lifecycle: [
-      { key: "setup", label: "Pilot Setup", status: "completed", dayRange: "Days 1–14", desc: "Camera fiber links connected to ICCC" },
-      { key: "deployment", label: "Deployment", status: "completed", dayRange: "Days 15–30", desc: "18 junction edge compute boxes live" },
-      { key: "data_collection", label: "Data Collection", status: "completed", dayRange: "Days 31–60", desc: "Peak hour traffic video stream telemetry" },
-      { key: "evaluation", label: "Evaluation", status: "current", dayRange: "Days 61–75", desc: "Adaptive green timing KPI calculation" },
-      { key: "review", label: "Government Review", status: "upcoming", dayRange: "Days 76–90", desc: "Nagpur Traffic Police final clearance" },
+      { key: "setup", label: "Pilot Setup", status: "completed", dayRange: "Days 1–10", desc: "Sanitation depot GIS mapping & routes configured" },
+      { key: "deployment", label: "Deployment", status: "completed", dayRange: "Days 11–25", desc: "250 ultrasonic bin sensor pods installed" },
+      { key: "data_collection", label: "Data Collection", status: "completed", dayRange: "Days 26–45", desc: "Daily vehicle GPS & fuel telemetry ingestion" },
+      { key: "evaluation", label: "Evaluation", status: "current", dayRange: "Days 46–55", desc: "Route fuel optimization & missed pickup analysis" },
+      { key: "review", label: "Government Review", status: "upcoming", dayRange: "Days 56–60", desc: "Sanitation Committee formal review" },
     ],
     kpis: [
-      { name: "Wait Time Reduction", target: "≥20%", current: "24.8%", status: "passed", note: "Average reduction across 18 arterial junctions", proofFile: "Traffic_Wait_Time.xlsx" },
-      { name: "Queue Length Estimation", target: "≥95%", current: "96.1%", status: "passed", note: "Compared against manual traffic counts", proofFile: "Queue_Audit.pdf" },
-      { name: "Edge Device Uptime", target: "≥99%", current: "98.6%", status: "attention", note: "Minor power outage logged at Wardha Road junction", proofFile: "Edge_Uptime_Logs.csv" },
-      { name: "Emergency Corridor Priority", target: "<30s", current: "19s", status: "passed", note: "Automated green wave triggered for 12 ambulances", proofFile: "Ambulance_Green_Logs.pdf" },
+      { name: "Fuel Efficiency Gain", target: "≥25%", current: "27.3%", status: "passed", note: "Average fuel reduction across 30 routes", proofFile: "Fuel_Audit.xlsx" },
+      { name: "Pickup Adherence", target: "≥98%", current: "98.8%", status: "passed", note: "Verified via RFID bin lift confirmation", proofFile: "Pickup_Logs.pdf" },
+      { name: "Bin Sensor Uptime", target: "≥99%", current: "99.1%", status: "passed", note: "250 ultrasonic pods transmitting heartbeat", proofFile: "Sensor_Uptime.csv" },
+      { name: "Route Generation Latency", target: "<60s", current: "18s", status: "passed", note: "Morning dispatch route computation", proofFile: "Route_Latency.csv" },
     ],
     evidence: [
       {
-        id: "EVID-024-VID",
-        name: "Junction_Video_Audit.pdf",
+        id: "EVID-024-DEP",
+        name: "Bin_Pod_Installation_Report.pdf",
         category: "Technical",
         status: "Verified",
-        uploader: "Nagpur SPV Traffic Lead",
-        date: "2026-06-25",
+        uploader: "Sanitation Inspector CIDCO",
+        date: "2026-06-12",
         hash: "9A4C22F1...001",
-        verificationNote: "30-day continuous video inference audit verified by traffic division.",
+        verificationNote: "250 ultrasonic sensor pods mounted and verified on community bins.",
       },
       {
         id: "EVID-024-EVL",
-        name: "Adaptive_Timing_Benchmark.xlsx",
+        name: "Fuel_Savings_Verification.xlsx",
         category: "Performance",
         status: "Verified",
-        uploader: "NeuralFlow Labs",
-        date: "2026-07-10",
+        uploader: "CleanRoute AI",
+        date: "2026-06-25",
         hash: "5D1B88E3...002",
-        verificationNote: "Telemetry shows 24.8% peak hour congestion index reduction.",
+        verificationNote: "Telemetry confirms 27.3% diesel savings over 30 days.",
       },
       {
         id: "EVID-024-POL",
-        name: "Traffic_Police_Feedback.pdf",
+        name: "Sanitation_Superintendent_Feedback.pdf",
         category: "Governance",
         status: "Submitted",
-        uploader: "ACP Traffic Nagpur",
-        date: "2026-07-20",
+        uploader: "Superintendent of Sanitation",
+        date: "2026-07-02",
         hash: "2B8E44A1...003",
-        verificationNote: "Field observations submitted recommending adoption.",
+        verificationNote: "Field observations submitted recommending city-wide rollout.",
       },
     ],
-    nextActionText: "Finalize Joint SPV Evaluation Dossier.",
-    nextActionSubtext: "Evaluation stage is 85% complete. Convene joint review with Traffic Police prior to Government Review stage.",
+    nextActionText: "Finalize Joint Municipal Sanitation Evaluation Dossier.",
+    nextActionSubtext: "Evaluation stage is 85% complete. Convene joint review with Sanitation Committee.",
     nextActionButtonLabel: "View Evaluation Dossier →",
     outcome: null,
   },
   {
     caseId: "PRB-MH-2026-1045",
     pilotId: "PIL-MH-2026-025",
-    title: "RURAL HEALTH DRONE DELIVERY NETWORK",
-    department: "Public Health Dept Maharashtra",
-    startup: "AeroMed Innovations",
-    location: "Gadchiroli PHC Cluster",
-    budget: "₹1.20 Cr",
+    title: "URBAN AIR QUALITY MONITORING",
+    department: "Urban Development Department",
+    startup: "AirSense Labs",
+    location: "Nagpur Industrial Corridor",
+    budget: "₹95.00 Lakh",
     pilotStatus: "COMPLETED",
     pilotDurationDays: 90,
     currentDay: 90,
     currentStage: "GOVERNMENT REVIEW",
     financialYear: "FY 2026–27",
     lifecycle: [
-      { key: "setup", label: "Pilot Setup", status: "completed", dayRange: "Days 1–14", desc: "DGCA airspace permissions cleared" },
-      { key: "deployment", label: "Deployment", status: "completed", dayRange: "Days 15–30", desc: "Base hubs and cold-chain nests set up" },
-      { key: "data_collection", label: "Data Collection", status: "completed", dayRange: "Days 31–60", desc: "150 live medical payload flight missions" },
-      { key: "evaluation", label: "Evaluation", status: "completed", dayRange: "Days 61–75", desc: "Cold-chain stability and turnaround telemetry" },
-      { key: "review", label: "Government Review", status: "completed", dayRange: "Days 76–90", desc: "Directorate of Health Services sign-off" },
+      { key: "setup", label: "Pilot Setup", status: "completed", dayRange: "Days 1–14", desc: "Sensor grid topology & pole mounting approved" },
+      { key: "deployment", label: "Deployment", status: "completed", dayRange: "Days 15–30", desc: "50 solar IoT air pods deployed across corridors" },
+      { key: "data_collection", label: "Data Collection", status: "completed", dayRange: "Days 31–60", desc: "Continuous particulate & gas telemetry ingest" },
+      { key: "evaluation", label: "Evaluation", status: "completed", dayRange: "Days 61–75", desc: "Co-location calibration benchmark against CPCB station" },
+      { key: "review", label: "Government Review", status: "completed", dayRange: "Days 76–90", desc: "MPCB and Urban Development final sign-off" },
     ],
     kpis: [
-      { name: "Emergency Delivery Time", target: "<30 mins", current: "18.4 mins", status: "passed", note: "Delivered antivenom to remote tribal PHC in 18 mins", proofFile: "Flight_Mission_Logs.csv" },
-      { name: "Cold-Chain Temperature", target: "2°C - 8°C", current: "100% stable", status: "passed", note: "IoT thermal logger recorded zero temperature breaches", proofFile: "Thermal_Data.pdf" },
-      { name: "Flight Success Rate", target: "≥98%", current: "99.2%", status: "passed", note: "149 of 150 successful missions completed safely", proofFile: "DGCA_Compliance.pdf" },
+      { name: "CPCB Calibration R2", target: "≥0.92", current: "0.948", status: "passed", note: "Continuous co-location at reference station", proofFile: "CPCB_Benchmark.pdf" },
+      { name: "Hotspot Detection Time", target: "<15 mins", current: "8.2 mins", status: "passed", note: "Spike alerts delivered to environmental officers", proofFile: "Hotspot_Logs.xlsx" },
+      { name: "Sensor Grid Uptime", target: "≥98%", current: "99.4%", status: "passed", note: "Solar battery telemetry continuously active", proofFile: "Uptime_Logs.csv" },
     ],
     evidence: [
       {
-        id: "EVID-025-DGC",
-        name: "DGCA_BVLOS_Clearance.pdf",
+        id: "EVID-025-CAL",
+        name: "CPCB_CoLocation_Calibration.pdf",
         category: "Technical",
         status: "Verified",
-        uploader: "DGCA Airspace Authority",
-        date: "2026-04-10",
-        hash: "1A2B3C4D...001",
-        verificationNote: "Beyond Visual Line of Sight flight authorization cleared.",
+        uploader: "MPCB Senior Scientist",
+        date: "2026-06-12",
+        hash: "7C3E11A9...001",
+        verificationNote: "R2 correlation validated at 0.948 across 90 days.",
       },
       {
-        id: "EVID-025-FLT",
-        name: "150_Flight_Telemetry_Logs.zip",
+        id: "EVID-025-EVL",
+        name: "Industrial_Corridor_Air_Dossier.pdf",
         category: "Performance",
         status: "Verified",
-        uploader: "AeroMed Innovations",
-        date: "2026-06-30",
-        hash: "9F8E7D6C...002",
-        verificationNote: "Complete GPS, altitude, payload, and battery logs authenticated.",
+        uploader: "AirSense Labs",
+        date: "2026-06-28",
+        hash: "4D8B22C1...002",
+        verificationNote: "14 localized industrial emission spikes mapped and remediated.",
       },
       {
-        id: "EVID-025-MED",
-        name: "PHC_Medical_Officer_Signoff.pdf",
+        id: "EVID-025-GOV",
+        name: "Pollution_Board_Acceptance.pdf",
         category: "Governance",
         status: "Verified",
-        uploader: "Chief Medical Officer Gadchiroli",
-        date: "2026-07-15",
-        hash: "3C4D5E6F...003",
-        verificationNote: "Unanimous medical verification of vaccine and antivenom efficacy.",
+        uploader: "Regional Officer Nagpur",
+        date: "2026-07-05",
+        hash: "1A9E33F4...003",
+        verificationNote: "Technical acceptance sign-off recommended for state procurement.",
       },
     ],
-    nextActionText: "Proceed to Procurement Readiness & Decision Gate.",
-    nextActionSubtext: "Pilot successfully completed with 100% KPI adherence. Case is ready for authorized government procurement decision.",
+    nextActionText: "Review Final Government Sign-off & Authorize State Procurement Handoff.",
+    nextActionSubtext: "All 90-day sandbox pilot milestones completed with 100% KPI compliance verified by MPCB.",
     nextActionButtonLabel: "Open Decision Gate →",
     outcome: {
       determination: "Procurement Recommended",
-      summary: "The 90-day sandbox pilot successfully met 100% of clinical and telemetry KPIs across 150 live medical payload flights with zero incidents.",
-      authority: "Directorate of Health Services, Government of Maharashtra",
-      date: "18 September 2026",
-      decisionNumber: "GOV-MH-DHS-2026-REC-089",
+      summary: "AirSense Labs hyperlocal sensor mesh demonstrated 0.948 correlation with CPCB stations at 1/10th legacy equipment capital cost.",
+      authority: "Urban Development Department & MPCB Joint Committee",
+      date: "2026-07-15",
+      decisionNumber: "DEC-MH-2026-088",
     },
   },
 ];
@@ -373,10 +373,13 @@ const PILOT_CASES_DATA: CasePilotData[] = [
    ═══════════════════════════════════════════════════════════════ */
 
 export default function PilotEvidencePage() {
-  const { pilot: contextPilot, loading, error, setTrace } = usePraman();
+  const {
+    pilot: contextPilot, selectedCaseId: contextSelectedCaseId, selectCase,
+    advancePilotStage, requirement, loading, error, setTrace
+  } = usePraman();
 
   // Filter and Selection State
-  const [selectedCaseId, setSelectedCaseId] = useState<string>("PRB-MH-2026-1042");
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(contextSelectedCaseId || "PRB-MH-2026-1042");
   const [departmentFilter, setDepartmentFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -386,6 +389,13 @@ export default function PilotEvidencePage() {
   const [showEvidenceModal, setShowEvidenceModal] = useState<boolean>(false);
   const [showNextActionModal, setShowNextActionModal] = useState<boolean>(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string>("");
+
+  // Sync with PramanContext selectedCaseId
+  useEffect(() => {
+    if (contextSelectedCaseId) {
+      setSelectedCaseId(contextSelectedCaseId);
+    }
+  }, [contextSelectedCaseId]);
 
   // Derive unique departments
   const departments = useMemo(() => {
@@ -409,16 +419,33 @@ export default function PilotEvidencePage() {
 
   // Current active case data
   const currentCase = useMemo(() => {
-    return (
-      PILOT_CASES_DATA.find((c) => c.caseId === selectedCaseId) ||
-      PILOT_CASES_DATA[0]
-    );
-  }, [selectedCaseId]);
+    const found = PILOT_CASES_DATA.find((c) => c.caseId === selectedCaseId) || PILOT_CASES_DATA[0];
+    // Enrich with dynamic contextPilot values if matching
+    if (contextPilot && (found.caseId === contextSelectedCaseId || found.caseId.includes(contextPilot.problem_id))) {
+      return {
+        ...found,
+        startup: contextPilot.startup || found.startup,
+        currentDay: contextPilot.current_day || found.currentDay,
+        currentStage: (contextPilot.status || found.currentStage).toUpperCase(),
+        kpis: found.kpis.map(k => {
+          const matchKpi = (contextPilot.kpis || []).find((ck: any) => ck.name.toLowerCase() === k.name.toLowerCase());
+          if (matchKpi) {
+            return { ...k, current: matchKpi.current || matchKpi.actual || k.current };
+          }
+          return k;
+        }),
+      };
+    }
+    return found;
+  }, [selectedCaseId, contextPilot, contextSelectedCaseId]);
 
   // Handle case switch
-  const handleCaseChange = (caseId: string) => {
+  const handleCaseChange = async (caseId: string) => {
     setSelectedCaseId(caseId);
     setActionSuccessMsg("");
+    if (selectCase) {
+      await selectCase(caseId);
+    }
   };
 
   // Reset filters

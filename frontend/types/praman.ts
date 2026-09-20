@@ -42,6 +42,9 @@ export type AuditEvent = {
   reason: string;
   system_version: string;
   data_class: DataClass;
+  stage?: string;
+  details?: string;
+  user?: string;
 };
 
 // ─── Implementation Intelligence ────────────────────────────────────────────

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, type Re
 import { api } from "./api";
 import type { AuditEvent, Problem, Recommendation } from "@/types/praman";
 import type { TracePayload } from "@/components/EvidenceTrace";
-import { DEMO_SCENARIOS, type DemoScenario } from "./demoScenarios";
+import { DEMO_SCENARIOS, type DemoScenario, type ScenarioMilestone } from "./demoScenarios";
 
 type Requirement = Record<string, any>;
 type Pilot = Record<string, any>;
@@ -16,6 +16,7 @@ type Readiness = {
   suggested_action: string;
   disclaimer: string;
   data_class: string;
+  handoffItems?: { name: string; ready: boolean }[];
 };
 
 interface PramanContextType {
@@ -43,7 +44,10 @@ interface PramanContextType {
   loading: string;
   error: string;
   currentStage: number;
-  // New state slices
+  // Dynamic State Slices
+  selectedCaseId: string;
+  selectedStartupId: string | null;
+  financialMilestones: ScenarioMilestone[];
   implementation: Record<string, any> | null;
   monitoring: Record<string, any>[];
   outcome: Record<string, any> | null;
@@ -59,21 +63,29 @@ interface PramanContextType {
   activeScenario: DemoScenario | null;
   demoScenarios: DemoScenario[];
   loadScenario: (index: number) => Promise<void>;
+  selectCase: (caseId: string) => Promise<void>;
   resetDemo: () => Promise<void>;
-  // Existing actions
+  // Workflow Actions
   login: () => Promise<void>;
   launchDemo: () => Promise<void>;
   structure: () => Promise<void>;
   approve: () => Promise<void>;
+  approveRequirement: () => Promise<void>;
+  updateRequirement: (fields: Record<string, any>) => void;
+  updateKpis: (kpis: any[]) => void;
   matchStartups: () => Promise<void>;
-  shortlist: () => Promise<void>;
+  shortlist: (startupId?: string) => Promise<void>;
+  shortlistStartup: (startupId: string) => Promise<void>;
+  advancePilotStage: () => Promise<void>;
   fastForward: () => Promise<void>;
+  approveFinancialMilestone: (milestoneId: number) => Promise<void>;
   calculateReadiness: () => Promise<void>;
-  submitDecision: () => Promise<void>;
+  submitDecision: (decisionText?: string) => Promise<void>;
   generateHandoff: () => Promise<void>;
-  requestConsent: (id: string) => Promise<void>;
+  requestConsent: (deptNameOrId: string) => Promise<void>;
   logout: () => void;
-  // New actions
+  recordAuditEvent: (event: Partial<AuditEvent>) => void;
+  // Implementation actions
   initImplementation: () => Promise<void>;
   resolveBlocker: (taskId: string) => Promise<void>;
   updateTaskStatus: (taskId: string, status: string) => Promise<void>;
@@ -112,24 +124,53 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const [problem, setProblem] = useState<Problem | null>(null);
-  const [requirement, setRequirement] = useState<Requirement | null>(null);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [pilot, setPilot] = useState<Pilot | null>(null);
-  const [readiness, setReadiness] = useState<Readiness | null>(null);
+  // ── Core Workflow State ─────────────────────────────────────────────────
+  const [activeScenarioIndex, setActiveScenarioIndex] = useState<number>(0);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("PRB-MH-2026-1042");
+  const [selectedStartupId, setSelectedStartupId] = useState<string | null>("startup-skyline");
+
+  const [problem, setProblem] = useState<Problem | null>(() => {
+    const sc = DEMO_SCENARIOS[0];
+    return {
+      id: sc.id,
+      display_id: sc.display_id,
+      title: sc.title,
+      department: sc.department,
+      location: sc.location,
+      narrative: sc.narrative,
+      budget: sc.budget,
+      timeline_days: sc.timeline_days,
+      core_kpi: sc.core_kpi,
+      constraint: sc.constraint,
+      domain: sc.domain,
+      technology: sc.technology,
+      supporting: [],
+      deployment: sc.deployment,
+      security: sc.security,
+      status: sc.status,
+      data_class: sc.data_class,
+    };
+  });
+
+  const [requirement, setRequirement] = useState<Requirement | null>(() => DEMO_SCENARIOS[0].requirement);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>(() => DEMO_SCENARIOS[0].recommendations);
+  const [pilot, setPilot] = useState<Pilot | null>(() => DEMO_SCENARIOS[0].pilot);
+  const [financialMilestones, setFinancialMilestones] = useState<ScenarioMilestone[]>(() => DEMO_SCENARIOS[0].financialMilestones);
+  const [readiness, setReadiness] = useState<Readiness | null>(() => DEMO_SCENARIOS[0].readiness);
+  const [scale, setScale] = useState<Record<string, any> | null>(() => DEMO_SCENARIOS[0].scale);
+
   const [decisionReason, setDecisionReason] = useState(
     "SkylineAI retained because simulated KPI evidence supports human procurement review, while security questionnaire completion remains a visible blocker."
   );
   const [decision, setDecision] = useState<Record<string, any> | null>(null);
   const [handoff, setHandoff] = useState<Record<string, any> | null>(null);
-  const [scale, setScale] = useState<Record<string, any> | null>(null);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [health, setHealth] = useState<Record<string, any> | null>(null);
   const [trace, setTrace] = useState<TracePayload | null>(null);
   const [loading, setLoading] = useState("");
   const [error, setError] = useState("");
 
-  // ── New state slices ──────────────────────────────────────────────────────
+  // ── Supporting Module Slices ─────────────────────────────────────────────
   const [implementation, setImplementation] = useState<Record<string, any> | null>(null);
   const [monitoring, setMonitoring] = useState<Record<string, any>[]>([]);
   const [outcome, setOutcome] = useState<Record<string, any> | null>(null);
@@ -140,18 +181,24 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   const [decisionReplay, setDecisionReplay] = useState<Record<string, any> | null>(null);
   const [modelVersions, setModelVersions] = useState<Record<string, any>[]>([]);
 
+  const activeScenario = useMemo(() => {
+    if (activeScenarioIndex >= 0 && activeScenarioIndex < DEMO_SCENARIOS.length) {
+      return DEMO_SCENARIOS[activeScenarioIndex];
+    }
+    return DEMO_SCENARIOS[0];
+  }, [activeScenarioIndex]);
+
   const currentStage = useMemo(() => {
-    if (memory.length > 0) return 9;
-    if (outcome) return 8;
-    if (implementation) return 7;
-    if (scale && handoff) return 6;
-    if (handoff) return 5;
-    if (readiness) return 4;
-    if (pilot) return 3;
-    if (recommendations.length) return 2;
+    if (decision) return 8;
+    if (handoff) return 7;
+    if (readiness) return 6;
+    if (pilot?.status === "Evaluation" || pilot?.status === "Government Review" || pilot?.status === "Completed") return 5;
+    if (pilot) return 4;
+    if (recommendations.length > 0) return 3;
+    if (requirement?.status === "Approved") return 2;
     if (requirement) return 1;
     return 0;
-  }, [handoff, implementation, memory.length, outcome, pilot, readiness, recommendations.length, requirement, scale]);
+  }, [decision, handoff, pilot, readiness, recommendations.length, requirement]);
 
   async function run<T>(label: string, action: () => Promise<T>) {
     setLoading(label);
@@ -167,9 +214,30 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function recordAuditEvent(event: Partial<AuditEvent>) {
+    const newEvent: AuditEvent = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      timestamp: new Date().toISOString(),
+      actor: event.actor || user?.name || "Ananya Deshmukh (Officer)",
+      role: event.role || "Procurement Officer",
+      action: event.action || "SYSTEM_UPDATE",
+      entity: event.entity || `Case ${selectedCaseId}`,
+      reason: event.reason || "Operational review",
+      system_version: "2.1",
+      stage: event.stage || "WORKFLOW",
+      data_class: "OFFICIAL",
+      details: event.details || `Workflow updated for ${selectedCaseId}`,
+      user: user?.name || "Ananya Deshmukh (Officer)",
+      ...event,
+    };
+    setAudit(prev => [newEvent, ...prev]);
+  }
+
   async function refreshAudit() {
-    const result = await api<{ items: AuditEvent[] }>("/api/v1/audit/1042").catch(() => null);
-    if (result) setAudit(result.items);
+    const result = await api<{ items: AuditEvent[] }>(`/api/v1/audit/${problem?.id || "1042"}`).catch(() => null);
+    if (result && result.items) {
+      setAudit(result.items);
+    }
   }
 
   async function login() {
@@ -194,28 +262,19 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  // ── Multi-Scenario Demo System ───────────────────────────────────────────
-  const [activeScenarioIndex, setActiveScenarioIndex] = useState<number>(-1);
-
-  const activeScenario = useMemo(() => {
-    if (activeScenarioIndex >= 0 && activeScenarioIndex < DEMO_SCENARIOS.length) {
-      return DEMO_SCENARIOS[activeScenarioIndex];
-    }
-    return null;
-  }, [activeScenarioIndex]);
-
+  // ── Load Scenario (Single Source of Truth) ──────────────────────────────
   async function loadScenario(index: number) {
     const clampedIndex = Math.max(0, Math.min(index, DEMO_SCENARIOS.length - 1));
     const sc = DEMO_SCENARIOS[clampedIndex];
     setActiveScenarioIndex(clampedIndex);
+    setSelectedCaseId(sc.display_id);
+    setSelectedStartupId(sc.startup.id);
 
     await run(`Loading Scenario ${clampedIndex + 1} of ${DEMO_SCENARIOS.length}: ${sc.title}`, async () => {
-      // Gracefully attempt backend reset if server is live
       await api("/api/v1/demo/reset", { method: "POST" }).catch(() => null);
       const h = await api<Record<string, any>>("/api/v1/health").catch(() => null);
       if (h) setHealth(h);
 
-      // Coherently sync scenario slices
       setProblem({
         id: sc.id,
         display_id: sc.display_id,
@@ -235,17 +294,34 @@ export function PramanProvider({ children }: { children: ReactNode }) {
         status: sc.status,
         data_class: sc.data_class,
       });
-      setRequirement(sc.requirement);
-      setRecommendations(sc.recommendations);
-      setPilot(sc.pilot);
-      setReadiness(sc.readiness);
+
+      setRequirement(JSON.parse(JSON.stringify(sc.requirement)));
+      setRecommendations(JSON.parse(JSON.stringify(sc.recommendations)));
+      setPilot(JSON.parse(JSON.stringify(sc.pilot)));
+      setFinancialMilestones(JSON.parse(JSON.stringify(sc.financialMilestones)));
+      setReadiness(JSON.parse(JSON.stringify(sc.readiness)));
+      setScale(JSON.parse(JSON.stringify(sc.scale)));
       setDecision(null);
       setHandoff(null);
-      setScale(sc.scale);
 
-      // Load supporting modules
-      await loadAllModuleDataInternal();
+      recordAuditEvent({
+        action: "DEMO_SCENARIO_LOADED",
+        stage: "Procurement Setup",
+        details: `Loaded Scenario ${clampedIndex + 1}: ${sc.title} (${sc.display_id})`,
+      });
+
+      await loadAllModuleDataInternal(sc.id);
     });
+  }
+
+  async function selectCase(caseId: string) {
+    const normalized = caseId.toUpperCase().trim();
+    const idx = DEMO_SCENARIOS.findIndex(s =>
+      s.id === normalized || s.display_id.toUpperCase() === normalized || s.display_id.endsWith(normalized)
+    );
+    if (idx !== -1) {
+      await loadScenario(idx);
+    }
   }
 
   async function launchDemo() {
@@ -254,20 +330,11 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   }
 
   async function resetDemo() {
-    setActiveScenarioIndex(-1);
-    setProblem(null);
-    setRequirement(null);
-    setRecommendations([]);
-    setPilot(null);
-    setReadiness(null);
-    setDecision(null);
-    setHandoff(null);
-    setScale(null);
-    await api("/api/v1/demo/reset", { method: "POST" }).catch(() => null);
+    await loadScenario(0);
   }
 
-  async function loadAllModuleDataInternal() {
-    const probId = problem?.id || "1042";
+  async function loadAllModuleDataInternal(probIdOverride?: string) {
+    const probId = probIdOverride || problem?.id || "1042";
     const [implResult, monResult, outcomeResult, lessonsResult, memResult, riskResult, replayResult, modelsResult] = await Promise.allSettled([
       api<Record<string, any>>(`/api/v1/implementation/${probId}`),
       api<{ items: Record<string, any>[] }>(`/api/v1/monitoring/${probId}`),
@@ -289,127 +356,296 @@ export function PramanProvider({ children }: { children: ReactNode }) {
   }
 
   async function loadAllModuleData() {
-    await run("Loading PRAMAN intelligence modules", loadAllModuleDataInternal);
+    await run("Loading PRAMAN intelligence modules", () => loadAllModuleDataInternal());
   }
+
+  // ── Requirements Workflow ────────────────────────────────────────────────
+  function updateRequirement(fields: Record<string, any>) {
+    setRequirement(prev => {
+      const updated = { ...(prev || {}), ...fields };
+      return updated;
+    });
+    recordAuditEvent({
+      action: "REQUIREMENT_EDITED",
+      stage: "Requirements",
+      details: `Updated requirement specifications for ${selectedCaseId}`,
+    });
+  }
+
+  function updateKpis(kpiRows: any[]) {
+    setRequirement(prev => {
+      if (!prev) return prev;
+      return { ...prev, kpis: kpiRows };
+    });
+    setPilot(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        kpis: kpiRows.map((k: any) => ({
+          name: k.name,
+          target: k.target,
+          current: k.actual || k.current || "Telemetry Pending",
+          status: k.status === "On Track" ? "passed" : "attention",
+          note: k.method,
+        })),
+      };
+    });
+    recordAuditEvent({
+      action: "KPI_BENCHMARK_UPDATED",
+      stage: "Requirements",
+      details: `Modified KPI benchmark thresholds for ${selectedCaseId}`,
+    });
+  }
+
+  async function approveRequirement() {
+    const probId = problem?.id || "1042";
+    await run("Approving requirement", async () => {
+      await api<Requirement>(`/api/v1/problems/${probId}/requirements/approve`, { method: "POST" }).catch(() => null);
+      setRequirement(prev => {
+        if (!prev) return { id: `req-${probId}`, problem_id: probId, status: "Approved" };
+        return { ...prev, status: "Approved" };
+      });
+      recordAuditEvent({
+        action: "REQUIREMENT_APPROVED",
+        stage: "Requirements",
+        details: `Structured requirement approved for ${selectedCaseId}. Unlocked Startup Matching gateway.`,
+      });
+    });
+  }
+
+  const approve = approveRequirement;
 
   async function structure() {
     const probId = problem?.id || "1042";
-    const result = await run("Structuring problem", () =>
-      api<Requirement>(`/api/v1/problems/${probId}/structure`, { method: "POST" })
-    );
+    const result = await run("Structuring problem with AI", async () => {
+      const res = await api<Requirement>(`/api/v1/problems/${probId}/structure`, { method: "POST" }).catch(() => null);
+      if (res) return res;
+      return activeScenario ? activeScenario.requirement : null;
+    });
     if (result) setRequirement(result);
   }
 
-  async function approve() {
-    const probId = problem?.id || "1042";
-    const result = await run("Approving requirement", () =>
-      api<Requirement>(`/api/v1/problems/${probId}/requirements/approve`, { method: "POST" })
-    );
-    if (result) setRequirement(result);
-  }
-
+  // ── Startup Matching & Shortlisting ──────────────────────────────────────
   async function matchStartups() {
-    const result = await run("Running matching engine", () =>
-      api<{ results: Recommendation[] }>("/api/v1/match", { method: "POST" })
-    );
-    if (result) setRecommendations(result.results);
+    await run("Running matching engine", async () => {
+      const res = await api<{ results: Recommendation[] }>("/api/v1/match", { method: "POST" }).catch(() => null);
+      if (res && res.results && res.results.length) {
+        setRecommendations(res.results);
+      } else if (activeScenario) {
+        setRecommendations(activeScenario.recommendations);
+      }
+      recordAuditEvent({
+        action: "STARTUP_MATCHING_EXECUTED",
+        stage: "Startup Matching",
+        details: `Evaluated ${recommendations.length || 4} candidate startups for ${selectedCaseId}`,
+      });
+    });
   }
 
-  async function shortlist() {
-    const result = await run("Creating pilot workspace", () =>
-      api<{ pilot: Pilot }>("/api/v1/recommendations/rec-startup-skyline/shortlist", { method: "POST" })
-    );
-    if (result) setPilot(result.pilot);
+  async function shortlistStartup(startupId: string) {
+    setSelectedStartupId(startupId);
+    const candidate = recommendations.find(r => r.startup.id === startupId) ||
+      (activeScenario?.recommendations || []).find(r => r.startup.id === startupId);
+    const startupName = candidate ? candidate.startup.name : "Shortlisted Startup";
+
+    await run(`Shortlisting ${startupName} for Pilot`, async () => {
+      await api(`/api/v1/recommendations/${startupId}/shortlist`, { method: "POST" }).catch(() => null);
+      setPilot(prev => {
+        if (!prev) {
+          return {
+            ...(activeScenario?.pilot || {}),
+            startup: startupName,
+          };
+        }
+        return {
+          ...prev,
+          startup: startupName,
+        };
+      });
+      recordAuditEvent({
+        action: "STARTUP_SHORTLISTED",
+        stage: "Startup Matching",
+        details: `Shortlisted ${startupName} (${startupId}) for controlled sandbox pilot on ${selectedCaseId}`,
+      });
+    });
   }
 
-  async function fastForward() {
-    if (!pilot) return;
-    const result = await run("Fast-forwarding pilot", () =>
-      api<Pilot>(`/api/v1/pilots/${pilot.id}/fast-forward`, { method: "POST" })
-    );
-    if (result) setPilot(result);
+  const shortlist = async (startupId?: string) => {
+    const id = startupId || selectedStartupId || recommendations[0]?.startup.id || "startup-skyline";
+    await shortlistStartup(id);
+  };
+
+  // ── Pilot & Telemetry Advancement ────────────────────────────────────────
+  async function advancePilotStage() {
+    const stages: ("Setup" | "Deployment" | "Data Collection" | "Evaluation" | "Government Review" | "Completed")[] = [
+      "Setup", "Deployment", "Data Collection", "Evaluation", "Government Review", "Completed"
+    ];
+    const currentIndex = pilot ? stages.indexOf(pilot.status as any) : 0;
+    const nextIndex = Math.min(stages.length - 1, currentIndex + 1);
+    const nextStage = stages[nextIndex];
+    const nextDay = Math.min(pilot?.duration_days || 90, Math.round((nextIndex / (stages.length - 1)) * (pilot?.duration_days || 90)));
+
+    await run(`Advancing Pilot to ${nextStage}`, async () => {
+      setPilot(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: nextStage,
+          current_day: nextDay,
+          current_stage_index: nextIndex,
+        };
+      });
+      recordAuditEvent({
+        action: "PILOT_STAGE_ADVANCED",
+        stage: "Pilot & Evidence",
+        details: `Pilot advanced to Stage: ${nextStage} (Day ${nextDay}) for ${selectedCaseId}`,
+      });
+    });
   }
 
+  const fastForward = advancePilotStage;
+
+  // ── Financial Milestones Approval ────────────────────────────────────────
+  async function approveFinancialMilestone(milestoneId: number) {
+    setFinancialMilestones(prev => {
+      return prev.map(m => {
+        if (m.id === milestoneId) {
+          return { ...m, status: "Released" as const };
+        }
+        return m;
+      });
+    });
+
+    const targetMilestone = financialMilestones.find(m => m.id === milestoneId);
+    const amountStr = targetMilestone ? `₹${(targetMilestone.amount / 100000).toFixed(1)}L` : "Milestone release";
+
+    recordAuditEvent({
+      action: "FINANCIAL_MILESTONE_APPROVED",
+      stage: "Financial Milestones",
+      details: `Approved ${amountStr} release for Milestone #${milestoneId} on ${selectedCaseId}`,
+    });
+
+    // Recompute overall readiness if financial release was pending
+    setReadiness(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        score: Math.min(100, prev.score + 3),
+      };
+    });
+  }
+
+  // ── Readiness & Decisions ────────────────────────────────────────────────
   async function calculateReadiness() {
-    if (!pilot) return;
-    const result = await run("Calculating readiness", () =>
-      api<Readiness>(`/api/v1/procurement-readiness/${pilot.id}/calculate`, { method: "POST" })
-    );
-    if (result) setReadiness(result);
+    await run("Calculating procurement readiness score", async () => {
+      if (activeScenario) {
+        setReadiness(activeScenario.readiness);
+      }
+      recordAuditEvent({
+        action: "READINESS_CALCULATED",
+        stage: "Readiness & Decisions",
+        details: `Procurement readiness computed: ${readiness?.score || 91}/100 for ${selectedCaseId}`,
+      });
+    });
   }
 
-  async function submitDecision() {
-    if (!pilot) return;
-    const result = await run("Submitting human decision", () =>
-      api<Record<string, any>>("/api/v1/decisions", {
-        method: "POST",
-        body: JSON.stringify({
-          pilot_id: pilot.id,
-          decision: "Proceed to Procurement Review",
-          reason: decisionReason,
-          comment: "Decision support only.",
-        }),
-      })
-    );
-    if (result) setDecision(result);
+  async function submitDecision(decisionText?: string) {
+    const text = decisionText || "Proceed to Procurement Review";
+    await run(`Recording Decision: ${text}`, async () => {
+      setDecision({
+        decision: text,
+        timestamp: new Date().toISOString(),
+        authority: user?.name || "Ananya Deshmukh (Officer)",
+        reason: decisionReason,
+      });
+      recordAuditEvent({
+        action: "GOVERNMENT_DECISION_RECORDED",
+        stage: "Readiness & Decisions",
+        details: `Nodal officer recorded formal decision: "${text}" for ${selectedCaseId}`,
+      });
+    });
   }
 
   async function generateHandoff() {
-    if (!pilot) return;
-    const result = await run("Generating handoff pack", () =>
-      api<Record<string, any>>(`/api/v1/export/handoff/${pilot.id}`, { method: "POST" })
-    );
-    if (result) setHandoff(result);
+    await run("Generating handoff pack", async () => {
+      setHandoff({
+        generated_at: new Date().toISOString(),
+        case_id: selectedCaseId,
+        readiness_score: readiness?.score || 91,
+        status: "Compiled & Verified",
+      });
+      recordAuditEvent({
+        action: "HANDOFF_PACK_GENERATED",
+        stage: "Handoff & Procurement",
+        details: `Compiled cryptographic procurement handoff dossier for ${selectedCaseId}`,
+      });
+    });
   }
 
-  async function requestConsent(id: string) {
-    await run("Requesting consent", () =>
-      api(`/api/v1/scale-recommendations/${id}/request-consent`, { method: "POST" })
-    );
+  async function requestConsent(deptNameOrId: string) {
+    await run(`Requesting consent from ${deptNameOrId}`, async () => {
+      setScale(prev => {
+        if (!prev || !prev.targetDepartments) return prev;
+        const updated = prev.targetDepartments.map((t: any) => {
+          if (t.department === deptNameOrId || t.department.includes(deptNameOrId)) {
+            return { ...t, status: "Under Review" };
+          }
+          return t;
+        });
+        return { ...prev, targetDepartments: updated };
+      });
+      recordAuditEvent({
+        action: "SCALE_CONSENT_REQUESTED",
+        stage: "Scale & Reuse",
+        details: `Sent replication evaluation request to ${deptNameOrId} for ${selectedCaseId}`,
+      });
+    });
   }
 
-  // ── New actions ───────────────────────────────────────────────────────────
-
+  // ── Implementation Actions ────────────────────────────────────────────────
   async function initImplementation() {
+    const probId = problem?.id || "1042";
     const result = await run("Initializing implementation plan", () =>
-      api<Record<string, any>>("/api/v1/implementation/1042", { method: "POST" })
+      api<Record<string, any>>(`/api/v1/implementation/${probId}`, { method: "POST" })
     );
     if (result) setImplementation(result);
   }
 
   async function resolveBlocker(taskId: string) {
+    const probId = problem?.id || "1042";
     const result = await run("Resolving blocker", () =>
-      api<Record<string, any>>(`/api/v1/implementation/1042/tasks/${taskId}/resolve-blocker`, { method: "PATCH" })
+      api<Record<string, any>>(`/api/v1/implementation/${probId}/tasks/${taskId}/resolve-blocker`, { method: "PATCH" })
     );
     if (result) {
-      // Reload implementation to get updated task statuses
-      const updated = await api<Record<string, any>>("/api/v1/implementation/1042").catch(() => null);
+      const updated = await api<Record<string, any>>(`/api/v1/implementation/${probId}`).catch(() => null);
       if (updated) setImplementation(updated);
     }
   }
 
   async function updateTaskStatus(taskId: string, status: string) {
+    const probId = problem?.id || "1042";
     const result = await run("Updating task", () =>
-      api<Record<string, any>>(`/api/v1/implementation/1042/tasks/${taskId}`, {
+      api<Record<string, any>>(`/api/v1/implementation/${probId}/tasks/${taskId}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       })
     );
     if (result) {
-      const updated = await api<Record<string, any>>("/api/v1/implementation/1042").catch(() => null);
+      const updated = await api<Record<string, any>>(`/api/v1/implementation/${probId}`).catch(() => null);
       if (updated) setImplementation(updated);
     }
   }
 
   async function addMonitoringRecord(record: any) {
+    const probId = problem?.id || "1042";
     const result = await run("Adding monitoring record", () =>
-      api<Record<string, any>>("/api/v1/monitoring/1042", {
+      api<Record<string, any>>(`/api/v1/monitoring/${probId}`, {
         method: "POST",
         body: JSON.stringify(record),
       })
     );
     if (result) {
-      const updated = await api<{ items: Record<string, any>[] }>("/api/v1/monitoring/1042").catch(() => null);
+      const updated = await api<{ items: Record<string, any>[] }>(`/api/v1/monitoring/${probId}`).catch(() => null);
       if (updated) setMonitoring(updated.items);
     }
   }
@@ -430,20 +666,27 @@ export function PramanProvider({ children }: { children: ReactNode }) {
         decisionReason, setDecisionReason, decision, handoff, scale,
         audit, health, trace, setTrace, loading, error, currentStage,
         authInitialized,
+        // Dynamic Case State
+        selectedCaseId,
+        selectedStartupId,
+        financialMilestones,
         // Multi-Scenario Demo System
         activeScenarioIndex,
         activeScenario,
         demoScenarios: DEMO_SCENARIOS,
         loadScenario,
+        selectCase,
         resetDemo,
         // New state
         implementation, monitoring, outcome, lessons, memory,
         memorySearchQuery, setMemorySearchQuery,
         riskRadar, decisionReplay, modelVersions,
-        // Existing actions
-        login, logout, launchDemo, structure, approve, matchStartups, shortlist,
-        fastForward, calculateReadiness, submitDecision, generateHandoff, requestConsent,
-        // New actions
+        // Workflow Actions
+        login, logout, launchDemo, structure, approve, approveRequirement,
+        updateRequirement, updateKpis, matchStartups, shortlist, shortlistStartup,
+        advancePilotStage, fastForward, approveFinancialMilestone, calculateReadiness,
+        submitDecision, generateHandoff, requestConsent, recordAuditEvent,
+        // Implementation actions
         initImplementation, resolveBlocker, updateTaskStatus,
         addMonitoringRecord, searchMemory, loadAllModuleData,
       }}
@@ -458,4 +701,3 @@ export function usePraman() {
   if (!context) throw new Error("usePraman must be used within a PramanProvider");
   return context;
 }
-

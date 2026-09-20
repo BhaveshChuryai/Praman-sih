@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { usePraman } from "@/lib/PramanContext";
 import { GovPageHeader, Panel, Empty, Action, AlertBanner, StatusBadge, kpiTrace } from "@/components/ui";
 import {
@@ -141,7 +141,11 @@ const INITIAL_INTEGRATION_REQUIREMENTS = [
    ═══════════════════════════════════════════════════════════════ */
 
 export default function RequirementsPage() {
-  const { problem, requirement, structure, approve, loading, error, setTrace } = usePraman();
+  const {
+    problem, requirement, structure, approveRequirement, approve,
+    updateRequirement: contextUpdateRequirement, updateKpis: contextUpdateKpis,
+    loading, error, setTrace, selectedCaseId
+  } = usePraman();
 
   // ── Edit mode state for 7 primary fields ──
   const [isEditing, setIsEditing] = useState(false);
@@ -173,30 +177,44 @@ export default function RequirementsPage() {
   const [changesText, setChangesText] = useState("");
   const [changesToast, setChangesToast] = useState(false);
 
+  // Sync state when active problem/case changes
+  useEffect(() => {
+    if (requirement && requirement.kpis && requirement.kpis.length > 0) {
+      setKpiList(requirement.kpis.map((k: any, idx: number) => ({
+        id: k.id || `kpi-${idx + 1}`,
+        name: k.name,
+        target: k.target,
+        method: k.method || "Controlled telemetry benchmark & field verification",
+        status: (k.status === "Needs Review" || k.met === false) ? "Needs Review" : "On Track",
+        confidence: "High",
+      })));
+    }
+    if (requirement?.security_constraints) {
+      setSecurityList(requirement.security_constraints);
+    }
+    if (requirement?.operational_constraints) {
+      setOperationalList(requirement.operational_constraints);
+    }
+    if (requirement?.integration_requirements) {
+      setIntegrationList(requirement.integration_requirements);
+    }
+    setSavedFields(null);
+    setIsEditing(false);
+  }, [problem?.id, requirement?.id, selectedCaseId]);
+
   // Derive Display Fields
   const displayFields: EditableFields = useMemo(() => {
     if (savedFields) return savedFields;
-    if (requirement) {
-      return {
-        domain: requirement.domain || "Urban Infrastructure & Mobility",
-        technology: requirement.technology || "Computer Vision & Edge AI",
-        problem_type: requirement.problem_type || "Predictive Infrastructure Maintenance",
-        geography: requirement.geography || "Pune District (Urban & Semi-Urban)",
-        budget: requirement.budget || "₹50L – ₹1Cr (Estimated Pilot Head)",
-        timeline: requirement.timeline || "90 Days Sandbox Validation",
-        deployment: requirement.deployment || "Edge cameras retrofitted on public bus fleet with automated GPS geo-tagging and central GIS hazard dashboard.",
-      };
-    }
     return {
-      domain: "Urban Infrastructure & Mobility",
-      technology: "Computer Vision & Edge AI",
-      problem_type: "Predictive Infrastructure Maintenance",
-      geography: "Pune District (Urban & Semi-Urban)",
-      budget: "₹50L – ₹1Cr (Estimated Pilot Head)",
-      timeline: "90 Days Sandbox Validation",
-      deployment: "Edge cameras retrofitted on public bus fleet with automated GPS geo-tagging and central GIS hazard dashboard.",
+      domain: problem?.domain || requirement?.domain || "Urban Infrastructure & Mobility",
+      technology: problem?.technology || requirement?.technology || "Computer Vision & Edge AI",
+      problem_type: problem?.title || requirement?.problem_type || "Predictive Infrastructure Maintenance",
+      geography: problem?.location ? `${problem.location} District` : (requirement?.geography || "Pune District"),
+      budget: problem?.budget || requirement?.budget || "₹50L – ₹1Cr (Estimated Pilot Head)",
+      timeline: problem?.timeline_days ? `${problem.timeline_days} Days Sandbox Validation` : (requirement?.timeline || "90 Days Sandbox Validation"),
+      deployment: problem?.deployment || requirement?.deployment || "Edge telemetry units retrofitted on public vehicles with automated GPS geo-tagging.",
     };
-  }, [requirement, savedFields]);
+  }, [problem, requirement, savedFields]);
 
   // Current active fields
   const currentFields = isEditing && editFields ? editFields : displayFields;
@@ -204,7 +222,7 @@ export default function RequirementsPage() {
   // Case details
   const caseContext = useMemo(() => {
     return {
-      id: problem?.display_id || problem?.id || "PRB-MH-2026-1042",
+      id: problem?.display_id || problem?.id || selectedCaseId || "PRB-MH-2026-1042",
       title: problem?.title || "Road damage detection using public transport telemetry",
       department: problem?.department || "PWD Maharashtra",
       location: problem?.location || "Pune",
@@ -213,7 +231,7 @@ export default function RequirementsPage() {
       stage: "Requirement Structuring",
       status: requirement?.status === "Approved" ? "Approved" : "Awaiting Officer Approval",
     };
-  }, [problem, requirement]);
+  }, [problem, requirement, selectedCaseId]);
 
   // ── Edit Handlers ──
   function startEdit() {
@@ -228,7 +246,6 @@ export default function RequirementsPage() {
 
   function saveEdit() {
     if (!editFields) return;
-    // Track which fields changed
     const changed = new Set(editedFieldKeys);
     Object.keys(editFields).forEach((key) => {
       const k = key as keyof EditableFields;
@@ -238,6 +255,9 @@ export default function RequirementsPage() {
     });
     setEditedFieldKeys(changed);
     setSavedFields({ ...editFields });
+    if (contextUpdateRequirement) {
+      contextUpdateRequirement(editFields);
+    }
     setIsEditing(false);
     setEditFields(null);
     setSaveToast(true);
@@ -258,7 +278,9 @@ export default function RequirementsPage() {
 
   function saveNewKpi() {
     if (!kpiDraft.name.trim()) return;
-    setKpiList((prev) => [...prev, { ...kpiDraft }]);
+    const updated = [...kpiList, { ...kpiDraft }];
+    setKpiList(updated);
+    if (contextUpdateKpis) contextUpdateKpis(updated);
     setAddingKpi(false);
     setKpiDraft({ id: "", name: "", target: "", method: "", status: "On Track" });
   }
@@ -270,13 +292,17 @@ export default function RequirementsPage() {
   }
 
   function saveEditKpi() {
-    setKpiList((prev) => prev.map((k) => (k.id === editingKpiId ? { ...kpiDraft } : k)));
+    const updated = kpiList.map((k) => (k.id === editingKpiId ? { ...kpiDraft } : k));
+    setKpiList(updated);
+    if (contextUpdateKpis) contextUpdateKpis(updated);
     setEditingKpiId(null);
     setKpiDraft({ id: "", name: "", target: "", method: "", status: "On Track" });
   }
 
   function deleteKpi(id: string) {
-    setKpiList((prev) => prev.filter((k) => k.id !== id));
+    const updated = kpiList.filter((k) => k.id !== id);
+    setKpiList(updated);
+    if (contextUpdateKpis) contextUpdateKpis(updated);
   }
 
   // ── AI Suggestion Addition Handlers ──
@@ -284,17 +310,19 @@ export default function RequirementsPage() {
     setSuggestions((prev) => prev.map((s) => (s.id === suggestion.id ? { ...s, added: true } : s)));
 
     if (suggestion.category === "kpi") {
-      setKpiList((prev) => [
-        ...prev,
+      const updated = [
+        ...kpiList,
         {
           id: `kpi-ai-${Date.now()}`,
           name: suggestion.text,
           target: "≥85% accuracy benchmark",
           method: "Controlled telemetry benchmark",
-          status: "On Track",
+          status: "On Track" as const,
           confidence: "AI-Suggested",
         },
-      ]);
+      ];
+      setKpiList(updated);
+      if (contextUpdateKpis) contextUpdateKpis(updated);
     } else if (suggestion.category === "security") {
       setSecurityList((prev) => [...prev, suggestion.text]);
     } else if (suggestion.category === "operational") {
@@ -329,9 +357,55 @@ export default function RequirementsPage() {
     setTimeout(() => setChangesToast(false), 4000);
   }
 
-  // Readiness Calculation
-  const readinessPct = requirement?.status === "Approved" ? 100 : 82;
   const isApproved = requirement?.status === "Approved";
+
+  // ── SECTION 11: DETERMINISTIC READINESS CALCULATION ──
+  const readinessCalculation = useMemo(() => {
+    const problemDefScore = caseContext.title ? 20 : 0;
+    const techScore = (currentFields.technology && currentFields.domain) ? 20 : 10;
+    const geoScore = currentFields.geography ? 15 : 0;
+    const budgetScore = currentFields.budget ? 15 : 0;
+    const deployScore = currentFields.deployment ? 10 : 0;
+
+    const invalidKpis = kpiList.filter(k => !k.name || !k.target || !k.method || k.status === "Needs Review" || k.status === "Missing");
+    let kpiScore = 10;
+    let kpiDetail = "Complete";
+    if (kpiList.length === 0) {
+      kpiScore = 0;
+      kpiDetail = "No KPIs defined";
+    } else if (invalidKpis.length > 0) {
+      kpiScore = Math.max(3, 10 - invalidKpis.length * 3);
+      kpiDetail = `${invalidKpis.length} item(s) in review`;
+    }
+
+    let secScore = 10;
+    let secDetail = "Complete";
+    if (securityList.length === 0) {
+      secScore = 0;
+      secDetail = "Missing";
+    } else if (!isApproved) {
+      secScore = 8;
+      secDetail = "Audit pending approval";
+    }
+
+    const calculatedScore = Math.min(100, isApproved ? 100 : (problemDefScore + techScore + geoScore + budgetScore + deployScore + kpiScore + secScore));
+
+    return {
+      score: calculatedScore,
+      checklist: [
+        { name: "Problem Definition", status: problemDefScore === 20 ? "pass" : "fail", detail: "Defined" },
+        { name: "Technology & Domain", status: techScore === 20 ? "pass" : "fail", detail: "Structured" },
+        { name: "Geography & Location", status: geoScore === 15 ? "pass" : "fail", detail: "Mapped" },
+        { name: "Budget Range", status: budgetScore === 15 ? "pass" : "fail", detail: "Allocated" },
+        { name: "Deployment Context", status: deployScore === 10 ? "pass" : "fail", detail: "Specified" },
+        { name: "KPIs & Success Criteria", status: invalidKpis.length === 0 ? "pass" : "attention", detail: kpiDetail },
+        { name: "Security & Compliance", status: isApproved ? "pass" : "attention", detail: secDetail },
+      ],
+      pendingCount: (invalidKpis.length > 0 ? 1 : 0) + (isApproved ? 0 : 1),
+    };
+  }, [caseContext.title, currentFields, kpiList, securityList, isApproved]);
+
+  const readinessPct = readinessCalculation.score;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
@@ -1316,27 +1390,27 @@ export default function RequirementsPage() {
 
               {/* Readiness Checklist */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "0.74rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#166534" }}>
-                  <Check size={13} style={{ color: "#16834B" }} /> Problem Definition
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#166534" }}>
-                  <Check size={13} style={{ color: "#16834B" }} /> Technology & Domain
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#166534" }}>
-                  <Check size={13} style={{ color: "#16834B" }} /> Geography & Location
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#166534" }}>
-                  <Check size={13} style={{ color: "#16834B" }} /> Budget Range
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#166534" }}>
-                  <Check size={13} style={{ color: "#16834B" }} /> Deployment Context
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#B45309" }}>
-                  <AlertTriangle size={13} style={{ color: "#D97706" }} /> KPIs & Success Criteria (2 in review)
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#B45309" }}>
-                  <AlertTriangle size={13} style={{ color: "#D97706" }} /> Security & Compliance (CERT-In pending)
-                </div>
+                {readinessCalculation.checklist.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      color: item.status === "pass" ? "#166534" : "#B45309"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {item.status === "pass" ? (
+                        <Check size={13} style={{ color: "#16834B" }} />
+                      ) : (
+                        <AlertTriangle size={13} style={{ color: "#D97706" }} />
+                      )}
+                      <span>{item.name}</span>
+                    </div>
+                    <span style={{ fontSize: "0.68rem", opacity: 0.85, fontWeight: 600 }}>
+                      {item.detail}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {/* Bottom Notice */}
@@ -1345,7 +1419,9 @@ export default function RequirementsPage() {
                   padding: "8px 10px", borderRadius: 5, background: "#FFFBEB", border: "1px solid #FDE68A",
                   fontSize: "0.68rem", color: "#92400E", fontWeight: 600
                 }}>
-                  2 items require attention — Complete the pending items before approval.
+                  {readinessCalculation.pendingCount > 0
+                    ? `${readinessCalculation.pendingCount} item(s) require officer verification before approval.`
+                    : "All 7 dimensions structured. Ready for officer approval sign-off."}
                 </div>
               )}
             </div>
@@ -1360,7 +1436,7 @@ export default function RequirementsPage() {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <p style={{ fontSize: "0.76rem", color: "var(--ink-mid)", lineHeight: 1.55, margin: 0 }}>
-                "PRAMAN identified this requirement as a computer-vision-based solution for detecting road damage using public transport telemetry."
+                {`"PRAMAN identified this requirement as a ${caseContext.domain} solution for ${caseContext.title} in ${caseContext.location} for ${caseContext.department}."`}
               </p>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "#EFF6FF", borderRadius: 5, border: "1px solid #BFDBFE" }}>
@@ -1371,9 +1447,9 @@ export default function RequirementsPage() {
               <div>
                 <p className="gov-section-label" style={{ marginBottom: 4, fontSize: "0.62rem" }}>Sources Used:</p>
                 <ul style={{ margin: 0, paddingLeft: 14, fontSize: "0.72rem", color: "var(--ink-mid)", lineHeight: 1.5 }}>
-                  <li>Problem Statement Intake</li>
-                  <li>Department Input & Field Constraints</li>
-                  <li>Historical PWD Requirements</li>
+                  <li>{`Department Problem Statement (${caseContext.id})`}</li>
+                  <li>Field Telemetry Constraints & Specifications</li>
+                  <li>Historical State Procurement Standard Benchmarks</li>
                 </ul>
               </div>
 

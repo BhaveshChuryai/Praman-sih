@@ -36,9 +36,8 @@ const WORKFLOW_STAGES = [
 export default function DashboardPage() {
   const router = useRouter();
   const {
-    user,
-    problem, requirement, recommendations, pilot, readiness, decision, handoff,
-    health, loading, error, currentStage, audit,
+    user, problem, requirement, recommendations, pilot, readiness, decision, handoff,
+    health, loading, error, currentStage, audit, selectedCaseId,
     activeScenarioIndex, activeScenario, demoScenarios, loadScenario, resetDemo,
     launchDemo, structure, approve, matchStartups, shortlist, fastForward, calculateReadiness,
     implementation, monitoring, riskRadar,
@@ -120,36 +119,36 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
         <KpiCard
           label="Active Procurement Cases"
-          value={problem ? "1 Case Active" : "—"}
+          value={`${demoScenarios.length} Cases Monitored`}
           icon={<FileText size={16} />}
-          trend={problem ? "PRB-MH-2026-1042" : undefined}
+          trend={selectedCaseId}
           trendPositive={true}
-          sublabel="PWD Maharashtra"
+          sublabel={problem?.department || "PWD Maharashtra"}
           onClick={() => router.push("/problems")}
         />
         <KpiCard
           label="Requirements Structured"
-          value={requirement ? (requirement.status === "Approved" ? "1 Approved" : "1 In Draft") : "—"}
+          value={requirement ? (requirement.status === "Approved" ? "Approved" : "Under Review") : "Draft"}
           icon={<ListChecks size={16} />}
-          trend={requirement ? "REQ-1042-V1" : undefined}
+          trend={requirement ? `Version v${requirement.version || "1.0"}` : undefined}
           trendPositive={requirement?.status === "Approved"}
-          sublabel="90-Day Timeline Target"
+          sublabel={`${problem?.timeline_days || 90}-Day Scope`}
           onClick={() => router.push("/requirements")}
         />
         <KpiCard
           label="Matched Solutions"
-          value={recommendations.length > 0 ? `${recommendations.length} Evaluated` : "—"}
+          value={recommendations.length > 0 ? `${recommendations.length} Evaluated Startups` : "4 Candidates"}
           icon={<Target size={16} />}
-          trend={recommendations.length > 0 ? "Top: SkylineAI (93/100)" : undefined}
+          trend={recommendations.length > 0 ? `Top: ${recommendations[0]?.startup.name} (${recommendations[0]?.score}/100)` : undefined}
           trendPositive={true}
-          sublabel="RRF + TOPSIS Ranking"
+          sublabel="Explainable Multi-Criteria Fit"
           onClick={() => router.push("/matching")}
         />
         <KpiCard
           label="Procurement Readiness"
-          value={readiness ? `${readiness.score}/100` : pilot?.success ? "Ready to Score" : "—"}
+          value={readiness ? `${readiness.score}/100` : "—"}
           icon={<Award size={16} />}
-          trend={readiness ? readiness.band : undefined}
+          trend={readiness ? readiness.band : "Calculating"}
           trendPositive={readiness?.score ? readiness.score >= 80 : false}
           sublabel="Evidence-Backed Assessment"
           onClick={() => router.push("/readiness")}
@@ -232,7 +231,7 @@ export default function DashboardPage() {
         <div className="shrink-0 w-full sm:w-auto">
           {actionRequired.action ? (
             <button
-              onClick={actionRequired.action}
+              onClick={() => actionRequired.action?.()}
               className="w-full sm:w-auto bg-[#0B2A5B] hover:bg-[#1236B8] text-white text-xs font-bold py-2.5 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
             >
               <span>{actionRequired.cta}</span>
@@ -255,10 +254,10 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div>
             <h2 className="text-base font-bold text-[#0B2A5B] tracking-tight">
-              Active Procurement Cases & Listings
+              Active Procurement Cases & Directory
             </h2>
             <p className="text-xs text-[#5E6B7E]">
-              Structure requirements, evaluate solutions, and prepare evidence-based procurement decisions.
+              Select a procurement case to switch the active workflow across Requirements, Startup Matching, Pilot, and Readiness.
             </p>
           </div>
           <Link
@@ -282,50 +281,36 @@ export default function DashboardPage() {
         {/* Case Cards Grid (2-Column Responsive Reference Layout) */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-            {/* Case 1: Active Hero Scenario */}
-            <ProcurementCaseCard
-              status={pilot?.success ? "EVALUATION COMPLETE" : pilot ? "PILOT ACTIVE" : requirement?.status === "Approved" ? "APPROVED FOR MATCHING" : requirement ? "REQUIREMENT STRUCTURED" : "OPEN CASE"}
-              statusTone={pilot?.success ? "green" : pilot ? "amber" : "blue"}
-              valueMetric="₹50L – ₹1Cr"
-              title={problem?.title ?? "AI Road Damage Detection for Public Transport Routes"}
-              description={problem?.narrative ?? "Public Works Department requires an edge-AI computer vision telemetry system mounted on municipal transport buses to autonomously identify and geotag potholes and road distress."}
-              department={problem?.department ?? "Public Works Department, Maharashtra"}
-              referenceId={problem?.id ? `PRB-MH-2026-${problem.id}` : "PRB-MH-2026-1042"}
-              location="Pune Municipal Bus Fleet (PMPML)"
-              deadline="90 Days Controlled Pilot Scope"
-              stage={WORKFLOW_STAGES[currentStage]?.label ?? "Problem Intake"}
-              category="Urban Infrastructure · Computer Vision Telemetry"
-              estimatedBudget="₹75,00,000 (Approved Allocation)"
-              primaryActionLabel={currentStage >= 6 ? "View Evidence Locker" : currentStage >= 3 ? "View Pilot Workspace" : "Execute Next Step"}
-              onPrimaryAction={() => {
-                if (currentStage >= 7) router.push("/readiness");
-                else if (currentStage >= 5) router.push("/pilots");
-                else if (currentStage >= 3) router.push("/matching");
-                else router.push("/requirements");
-              }}
-              secondaryActionLabel="Evidence Locker"
-              onSecondaryAction={() => router.push("/evidence")}
-            />
-
-            {/* Case 2: Standard Government Challenge Listing */}
-            <ProcurementCaseCard
-              status="OPEN FOR STRUCTURING"
-              statusTone="blue"
-              valueMetric="₹1.2Cr – ₹2.5Cr"
-              title="IoT Water Pipeline Leakage & Contamination Telemetry"
-              description="Water Supply & Sanitation Department seeks an acoustic sensor & flow meter mesh network to identify underground distribution leaks and microbial contamination in secondary pipelines."
-              department="Water Supply & Sanitation Department"
-              referenceId="PRB-MH-2026-1043"
-              location="Nashik & Chhatrapati Sambhajinagar"
-              deadline="120 Days Pilot Scope"
-              stage="Problem Intake"
-              category="Sensors & Water Infrastructure"
-              estimatedBudget="₹1,50,00,000 (Estimated Budget)"
-              primaryActionLabel="View Challenge Details"
-              onPrimaryAction={() => router.push("/problems")}
-              secondaryActionLabel="Institutional Memory"
-              onSecondaryAction={() => router.push("/memory")}
-            />
+            {demoScenarios.map((sc, sIdx) => {
+              const isActive = activeScenarioIndex === sIdx || selectedCaseId === sc.display_id;
+              return (
+                <div key={sc.id} className={isActive ? "ring-2 ring-[#0B2A5B] rounded-lg" : ""}>
+                  <ProcurementCaseCard
+                    status={isActive ? (pilot?.success ? "EVALUATION COMPLETE" : pilot ? "PILOT ACTIVE" : requirement?.status === "Approved" ? "APPROVED FOR MATCHING" : "ACTIVE WORKFLOW") : sc.status}
+                    statusTone={(isActive ? (pilot?.success ? "green" : "blue") : "blue") as "green" | "blue" | "amber"}
+                    valueMetric={sc.budget}
+                    title={sc.title}
+                    description={sc.narrative}
+                    department={sc.department}
+                    referenceId={sc.display_id}
+                    location={`${sc.location} (${sc.domain})`}
+                    deadline={`${sc.timeline_days} Days Scope`}
+                    stage={isActive ? (WORKFLOW_STAGES[currentStage]?.label ?? "Requirements") : "Problem Intake"}
+                    category={`${sc.domain} · ${sc.technology}`}
+                    estimatedBudget={`${sc.budget} (Allocation)`}
+                    primaryActionLabel={isActive ? "Open Active Workflow →" : "Select Case →"}
+                    onPrimaryAction={async () => {
+                      if (!isActive) {
+                        await loadScenario(sIdx);
+                      }
+                      router.push("/requirements");
+                    }}
+                    secondaryActionLabel="Evidence Locker"
+                    onSecondaryAction={() => router.push("/evidence")}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           /* Table View Alternative */
@@ -338,60 +323,49 @@ export default function DashboardPage() {
                   <th>Department</th>
                   <th>Location</th>
                   <th>Budget</th>
-                  <th>Current Stage</th>
+                  <th>Current Status</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="record-id font-bold">PRB-MH-2026-1042</td>
-                  <td>
-                    <p className="font-bold text-[#0B2A5B] text-xs">AI Road Damage Detection</p>
-                    <p className="text-[10px] text-[#5E6B7E]">Public Transport Telemetry</p>
-                  </td>
-                  <td className="text-xs">PWD Maharashtra</td>
-                  <td className="text-xs">Pune</td>
-                  <td className="text-xs font-semibold">₹50L – ₹1Cr</td>
-                  <td>
-                    <StatusBadge status={WORKFLOW_STAGES[currentStage]?.label ?? "Intake"} />
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => router.push("/requirements")}
-                      className="text-xs font-bold text-[#0B2A5B] hover:underline"
-                    >
-                      Open Case →
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="record-id font-bold">PRB-MH-2026-1043</td>
-                  <td>
-                    <p className="font-bold text-[#0B2A5B] text-xs">IoT Water Pipeline Leakage</p>
-                    <p className="text-[10px] text-[#5E6B7E]">Acoustic sensor mesh</p>
-                  </td>
-                  <td className="text-xs">Water Sanitation</td>
-                  <td className="text-xs">Nashik</td>
-                  <td className="text-xs font-semibold">₹1.2Cr – ₹2.5Cr</td>
-                  <td>
-                    <StatusBadge status="Draft" />
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => router.push("/problems")}
-                      className="text-xs font-bold text-[#0B2A5B] hover:underline"
-                    >
-                      Open Case →
-                    </button>
-                  </td>
-                </tr>
+                {demoScenarios.map((sc, sIdx) => {
+                  const isActive = activeScenarioIndex === sIdx || selectedCaseId === sc.display_id;
+                  return (
+                    <tr key={sc.id} className={isActive ? "bg-blue-50/50 font-medium" : ""}>
+                      <td className="record-id font-bold">{sc.display_id}</td>
+                      <td>
+                        <p className="font-bold text-[#0B2A5B] text-xs">{sc.title}</p>
+                        <p className="text-[10px] text-[#5E6B7E]">{sc.technology}</p>
+                      </td>
+                      <td className="text-xs">{sc.department}</td>
+                      <td className="text-xs">{sc.location}</td>
+                      <td className="text-xs font-semibold">{sc.budget}</td>
+                      <td>
+                        <Badge tone={isActive ? "success" : "neutral"}>
+                          {isActive ? "ACTIVE CASE" : sc.status}
+                        </Badge>
+                      </td>
+                      <td>
+                        <button
+                          onClick={async () => {
+                            if (!isActive) await loadScenario(sIdx);
+                            router.push("/requirements");
+                          }}
+                          className="text-xs font-bold text-[#0B2A5B] hover:underline"
+                        >
+                          {isActive ? "Open Case →" : "Select Case →"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
         {/* Pagination */}
-        <Pagination totalItems={2} pageSize={10} currentPage={currentPage} onPageChange={setCurrentPage} />
+        <Pagination totalItems={demoScenarios.length} pageSize={10} currentPage={currentPage} onPageChange={setCurrentPage} />
       </div>
 
       {/* ── Operational Intelligence & Department Activity (4 Live Widgets) ── */}

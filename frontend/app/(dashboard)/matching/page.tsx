@@ -28,133 +28,67 @@ const EVALUATION_CRITERIA = [
 /* ═══════════════════════════════════════════════════════════════
    DEFAULT / FALLBACK SAMPLE DATA FOR EXPLAINABILITY
    ═══════════════════════════════════════════════════════════════ */
-const DEFAULT_STARTUPS_DATA: Record<string, {
-  tagline: string;
-  location: string;
-  dpiit: string;
-  experienceYears: number;
-  whyFactors: string[];
-  evidenceCoverage: { total: number; verified: number; selfDeclared: number; missing: number; items: string[] };
-  risksAndGaps: string[];
-  scoreBreakdown: { reqMatch: number; evidence: number; pilotPerf: number; risk: number; historical: number; total: number };
-}> = {
-  "rec-startup-skyline": {
-    tagline: "Computer Vision for Safer Municipal Roads & Public Transport",
-    location: "Pune, Maharashtra",
-    dpiit: "DPIIT-MH-2023-88219",
+function getStartupExplainability(recOrId: any, nameOrDomain?: string, scoreOverride?: number) {
+  const rec = typeof recOrId === "object" && recOrId !== null ? recOrId : null;
+  const name = rec?.startup?.name || (typeof nameOrDomain === "string" ? nameOrDomain : "Startup Solution");
+  const dpiit = rec?.startup?.dpiit || "DPIIT-MH-2024-91823";
+  const score = scoreOverride || rec?.score || 90;
+  const capabilities = rec?.startup?.capabilities || ["AI Analytics", "Telemetry Sync", "Cloud Integration"];
+  const problemDomain = rec ? nameOrDomain : "Smart Infrastructure";
+
+  return {
+    tagline: `${capabilities.join(" · ")} for ${problemDomain || "Smart Infrastructure"}`,
+    location: "Maharashtra, India",
+    dpiit,
     experienceYears: 4,
     whyFactors: [
-      "Strong alignment with requirement: 93% problem and edge-computer vision fit",
-      "Verified public transit pilot evidence: Tested on 45 Pune municipal transport buses",
-      "Demonstrated KPI performance: 88.4% detection accuracy exceeding the ≥85% target",
-      "Relevant municipal experience: PWD Maharashtra & PMC smart city vendor",
-      "Acceptable implementation profile: Low integration overhead with existing telemetry",
+      `High alignment with requirement specifications: ${score}% multi-criteria fit`,
+      `Verified operational field telemetry evidence for ${capabilities[0] || "core system"}`,
+      `Demonstrated performance across prior public deployments`,
+      `Active DPIIT recognized startup entity with clean statutory compliance`,
+      `Low integration overhead with existing departmental gateways`,
     ],
     evidenceCoverage: {
       total: 10,
-      verified: 7,
+      verified: Math.min(8, Math.max(5, Math.round(score / 12))),
       selfDeclared: 2,
       missing: 1,
       items: [
-        "PMPML Bus Fleet Telemetry Log (45 Vehicles) — Independently Verified",
-        "Pothole & Crack Detection Test Dataset — 14,200 Validated Frames",
-        "CERT-In Cyber Compliance Self-Assessment — Audit Scheduled",
-        "Field Deployment Architecture & API Specs — Complete",
-        "Latency & Edge Inference Benchmark (<3.8s) — Verified",
+        `${name} Sandbox Field Telemetry Log — Independently Verified`,
+        `Core Technical KPI Validation Dataset — Verified`,
+        `CERT-In Cyber Compliance Assessment — In Progress`,
+        `System Architecture & API Integration Dossier — Complete`,
+        `Edge & Network Latency Benchmark Logs — Verified`,
       ],
     },
     risksAndGaps: [
-      "Telemetry API compatibility: Requires live validation with PWD central traffic gateway",
-      "Night-time deployment evidence: Low-light condition (<10 lux) field evidence is partial",
+      "Telemetry API compatibility: Requires live validation with departmental central gateway",
+      "Field environmental variability: High monsoon / adverse condition telemetry requires continuous monitoring",
     ],
     scoreBreakdown: {
-      reqMatch: 28,
-      evidence: 23,
-      pilotPerf: 19,
-      risk: 14,
-      historical: 9,
-      total: 93,
+      reqMatch: Math.round(score * 0.3),
+      evidence: Math.round(score * 0.25),
+      pilotPerf: Math.round(score * 0.2),
+      risk: Math.round(score * 0.15),
+      historical: Math.round(score * 0.1),
+      total: score,
     },
-  },
-  "rec-startup-aeroscan": {
-    tagline: "Drone Analytics & High-Resolution Geospatial Road Survey",
-    location: "Mumbai, Maharashtra",
-    dpiit: "DPIIT-MH-2022-64102",
-    experienceYears: 5,
-    whyFactors: [
-      "High spatial accuracy in road surface reconstruction and orthophoto mapping",
-      "Validated highway survey evidence: 320 km NHAI road mapping executed",
-      "Meets accuracy targets with high-resolution aerial photogrammetry",
-      "Strong historical compliance in State infrastructure surveys",
-    ],
-    evidenceCoverage: {
-      total: 10,
-      verified: 6,
-      selfDeclared: 2,
-      missing: 2,
-      items: [
-        "NHAI Highway Survey Benchmark (320 km) — Verified",
-        "DGCA Drone Flight Clearances & Standard Operating Procedures — Verified",
-        "Geospatial Elevation Model Accuracy Report (±2cm) — Verified",
-        "Real-time Telemetry Gateway Integration — Self-declared",
-      ],
-    },
-    risksAndGaps: [
-      "Deployment frequency: Drone flights cannot provide continuous daily telemetry like bus fleets",
-      "Weather dependency: Survey operations paused during severe monsoon rainfalls",
-    ],
-    scoreBreakdown: {
-      reqMatch: 26,
-      evidence: 21,
-      pilotPerf: 18,
-      risk: 13,
-      historical: 9,
-      total: 87,
-    },
-  },
-  "rec-startup-urbansentry": {
-    tagline: "IoT Telemetry + Vibration Sensors for Municipal Infrastructure",
-    location: "Bengaluru, Karnataka",
-    dpiit: "DPIIT-KA-2024-19402",
-    experienceYears: 3,
-    whyFactors: [
-      "Low-cost accelerometer and vibration sensor pods installed on axle mounts",
-      "Continuous data transmission over 4G/LTE cellular telemetry",
-      "Proven municipal pilot in Bengaluru Smart City trial (30 buses)",
-    ],
-    evidenceCoverage: {
-      total: 10,
-      verified: 5,
-      selfDeclared: 3,
-      missing: 2,
-      items: [
-        "BBMP Bus Axle Vibration Sensor Logs — Verified",
-        "Real-time GPS Pothole Coordinate Mapping — Verified",
-        "Visual Surface Defect Confirmation Dataset — Partial",
-      ],
-    },
-    risksAndGaps: [
-      "Visual classification missing: Vibration-only data cannot classify pothole area or visual depth",
-      "Hardware installation requirement: Requires physical mounting on bus undercarriage",
-    ],
-    scoreBreakdown: {
-      reqMatch: 24,
-      evidence: 20,
-      pilotPerf: 17,
-      risk: 13,
-      historical: 9,
-      total: 83,
-    },
-  },
-};
+  };
+}
 
 export default function MatchingPage() {
-  const { user, requirement, recommendations, pilot, matchStartups, shortlist, loading, error, setTrace } = usePraman();
+  const {
+    user, requirement, recommendations, pilot, matchStartups, shortlistStartup,
+    shortlist, loading, error, setTrace, activeScenario, selectedStartupId, problem, selectedCaseId
+  } = usePraman();
 
   // If user is a startup, render the dedicated applications view
   if (user?.role === "startup") {
     return <StartupApplicationsView user={user} />;
   }
+
+  // Determine current active recommendations (at least 4 candidates per scenario)
+  const currentRecs = recommendations.length > 0 ? recommendations : (activeScenario?.recommendations || []);
 
   // Active state
   const [selectedRecId, setSelectedRecId] = useState<string>("");
@@ -170,21 +104,20 @@ export default function MatchingPage() {
   const [evidenceRequestNote, setEvidenceRequestNote] = useState("");
   const [evidenceRequestSent, setEvidenceRequestSent] = useState(false);
 
-  // Determine current active recommendation
-  const currentRecs = recommendations.length > 0 ? recommendations : [];
-  
-  // Set default selection when recommendations load
-  const effectiveSelectedId = selectedRecId || (currentRecs[0]?.id ?? "rec-startup-skyline");
+  // Set default selection when recommendations load or scenario changes
+  const effectiveSelectedId = selectedRecId || (
+    currentRecs.find(r => r.startup.id === selectedStartupId)?.id || currentRecs[0]?.id || ""
+  );
   const selectedRec = currentRecs.find(r => r.id === effectiveSelectedId) || currentRecs[0] || null;
 
   // Selected startup enriched data
-  const selectedDetails = selectedRec
-    ? (DEFAULT_STARTUPS_DATA[selectedRec.id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"])
-    : DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+  const selectedDetails = useMemo(() => {
+    return getStartupExplainability(selectedRec, problem?.domain || activeScenario?.domain);
+  }, [selectedRec, problem?.domain, activeScenario?.domain]);
 
   const canMatch = requirement?.status === "Approved";
   const hasMatched = currentRecs.length > 0;
-  const canShortlist = hasMatched && !pilot;
+  const canShortlist = hasMatched && (!pilot || pilot.startup !== selectedRec?.startup.name);
 
   // Toggle selection for comparison
   const toggleCompare = (id: string) => {
@@ -200,7 +133,12 @@ export default function MatchingPage() {
 
   const handleConfirmShortlist = async () => {
     setShortlistModalOpen(false);
-    await shortlist();
+    const recToShortlist = targetShortlistRec || selectedRec || currentRecs[0];
+    if (recToShortlist) {
+      await shortlistStartup(recToShortlist.startup.id);
+    } else {
+      await shortlist();
+    }
   };
 
   return (
@@ -500,7 +438,7 @@ export default function MatchingPage() {
                     {currentRecs.map((rec: any, idx: number) => {
                       const isSelected = (selectedRec?.id === rec.id) || (!selectedRec && idx === 0);
                       const isChecked = selectedForCompare.includes(rec.id);
-                      const details = DEFAULT_STARTUPS_DATA[rec.id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                      const details = getStartupExplainability(rec.id, rec.startup?.name || "Startup", rec.score || 85);
                       const scoreVal = rec.score || details.scoreBreakdown.total;
 
                       return (
@@ -1075,8 +1013,8 @@ export default function MatchingPage() {
                     <tr>
                       <td className="font-bold text-[#172033]">Overall Match Score</td>
                       {selectedForCompare.map((id) => {
-                        const rec = currentRecs.find(r => r.id === id);
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((r: any) => r.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return (
                           <td key={id}>
                             <span className="text-sm font-black text-[#0B2A5B]">{rec?.score || details.scoreBreakdown.total} / 100</span>
@@ -1087,42 +1025,48 @@ export default function MatchingPage() {
                     <tr>
                       <td className="font-bold text-[#172033]">Requirement Match (30%)</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return <td key={id} className="font-semibold">{details.scoreBreakdown.reqMatch} / 30 pts</td>;
                       })}
                     </tr>
                     <tr>
                       <td className="font-bold text-[#172033]">Evidence Strength (25%)</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return <td key={id} className="font-semibold">{details.scoreBreakdown.evidence} / 25 pts</td>;
                       })}
                     </tr>
                     <tr>
                       <td className="font-bold text-[#172033]">Pilot Performance (20%)</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return <td key={id} className="font-semibold">{details.scoreBreakdown.pilotPerf} / 20 pts</td>;
                       })}
                     </tr>
                     <tr>
                       <td className="font-bold text-[#172033]">Implementation Risk (15%)</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return <td key={id} className="font-semibold">{details.scoreBreakdown.risk} / 15 pts</td>;
                       })}
                     </tr>
                     <tr>
                       <td className="font-bold text-[#172033]">Historical Performance (10%)</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return <td key={id} className="font-semibold">{details.scoreBreakdown.historical} / 10 pts</td>;
                       })}
                     </tr>
                     <tr>
                       <td className="font-bold text-[#172033]">Evidence Coverage</td>
                       {selectedForCompare.map((id) => {
-                        const details = DEFAULT_STARTUPS_DATA[id] || DEFAULT_STARTUPS_DATA["rec-startup-skyline"];
+                        const rec = currentRecs.find((item: any) => item.id === id);
+                        const details = getStartupExplainability(id, rec?.startup?.name || "Startup", rec?.score || 85);
                         return (
                           <td key={id}>
                             <span className="font-bold text-[#16834B]">{details.evidenceCoverage.verified} Verified</span> / {details.evidenceCoverage.total} Total

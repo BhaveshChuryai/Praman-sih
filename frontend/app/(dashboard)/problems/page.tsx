@@ -10,43 +10,30 @@ import { useRouter } from "next/navigation";
 
 export default function ProblemsPage() {
   const router = useRouter();
-  const { problem, currentStage } = usePraman();
+  const { demoScenarios, selectedCaseId, loadScenario, currentStage } = usePraman();
   const [search, setSearch] = useState("");
   const [selectedStage, setSelectedStage] = useState("All Stages");
   const [selectedDepartment, setSelectedDepartment] = useState("All Departments");
   const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("grid");
 
-  const problems = problem
-    ? [
-        {
-          id: problem.id || "1042",
-          title: problem.title || "AI Road Damage Detection for Public Transport Routes",
-          department: problem.department || "Public Works Department, Maharashtra",
-          location: problem.location || "Pune Municipal Bus Fleet",
-          narrative: problem.narrative || "Public Works Department requires an edge-AI computer vision telemetry system mounted on municipal transport buses to autonomously identify and geotag potholes and road distress.",
-          budget: problem.budget || "₹50L – ₹1Cr",
-          timeline: "90 Days Pilot",
-          domain: problem.domain || "Urban Infrastructure",
-          status: "APPROVED FOR PILOT",
-          statusTone: "green" as const,
-        },
-        {
-          id: "1043",
-          title: "IoT Water Pipeline Leakage & Contamination Telemetry",
-          department: "Water Supply & Sanitation Department",
-          location: "Nashik & Chhatrapati Sambhajinagar",
-          narrative: "Water Supply & Sanitation Department seeks an acoustic sensor & flow meter mesh network to identify underground distribution leaks and microbial contamination in secondary pipelines.",
-          budget: "₹1.2Cr – ₹2.5Cr",
-          timeline: "120 Days Pilot",
-          domain: "Sensors & Water Sanitation",
-          status: "OPEN CHALLENGE",
-          statusTone: "blue" as const,
-        },
-      ]
-    : [];
+  const problems = demoScenarios.map((sc, idx) => ({
+    index: idx,
+    id: sc.id,
+    display_id: sc.display_id,
+    title: sc.title,
+    department: sc.department,
+    location: sc.location,
+    narrative: sc.narrative,
+    budget: sc.budget,
+    timeline: `${sc.timeline_days} Days Pilot`,
+    domain: sc.domain,
+    technology: sc.technology,
+    status: selectedCaseId === sc.display_id ? "ACTIVE CASE" : sc.status,
+    statusTone: (selectedCaseId === sc.display_id ? "green" : "blue") as "green" | "blue" | "amber",
+  }));
 
   const filtered = problems.filter(p =>
-    (!search || p.title.toLowerCase().includes(search.toLowerCase()) || p.department.toLowerCase().includes(search.toLowerCase())) &&
+    (!search || p.title.toLowerCase().includes(search.toLowerCase()) || p.department.toLowerCase().includes(search.toLowerCase()) || p.domain.toLowerCase().includes(search.toLowerCase())) &&
     (selectedDepartment === "All Departments" || p.department.includes(selectedDepartment))
   );
 
@@ -54,8 +41,8 @@ export default function ProblemsPage() {
     <div className="space-y-6 min-w-0">
       <GovPageHeader
         eyebrow="Government Problem to Pilot"
-        title="Active Government Challenges & Listings"
-        subtitle="Explore official government problem statements open for startup innovation, structured requirement drafting, and pilot validation."
+        title="Active Government Challenges & Directory"
+        subtitle="Official government problem statements open for startup innovation, structured requirement review, and pilot validation."
         actions={
           <Link
             href="/problems/intake"
@@ -80,29 +67,34 @@ export default function ProblemsPage() {
       {filtered.length > 0 ? (
         viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-            {filtered.map((p) => (
-              <ProcurementCaseCard
-                key={p.id}
-                status={p.status}
-                statusTone={p.statusTone}
-                valueMetric={p.budget}
-                title={p.title}
-                description={p.narrative}
-                department={p.department}
-                referenceId={`PRB-MH-2026-${p.id}`}
-                location={p.location}
-                deadline={p.timeline}
-                stage={p.id === "1042" ? "Stage 4 · Pilot & Evidence" : "Stage 0 · Problem Intake"}
-                category={p.domain}
-                estimatedBudget={p.budget}
-                primaryActionLabel={p.id === "1042" ? "View Active Workflow" : "View Challenge"}
-                onPrimaryAction={() => {
-                  if (p.id === "1042") router.push("/requirements");
-                }}
-                secondaryActionLabel="Evidence Locker"
-                onSecondaryAction={() => router.push("/evidence")}
-              />
-            ))}
+            {filtered.map((p) => {
+              const isActive = selectedCaseId === p.display_id;
+              return (
+                <div key={p.id} className={isActive ? "ring-2 ring-[#0B2A5B] rounded-lg" : ""}>
+                  <ProcurementCaseCard
+                    status={isActive ? "ACTIVE WORKFLOW" : p.status}
+                    statusTone={p.statusTone}
+                    valueMetric={p.budget}
+                    title={p.title}
+                    description={p.narrative}
+                    department={p.department}
+                    referenceId={p.display_id}
+                    location={`${p.location} (${p.technology})`}
+                    deadline={p.timeline}
+                    stage={isActive ? "Stage 1 · Requirements Review" : "Stage 0 · Problem Intake"}
+                    category={p.domain}
+                    estimatedBudget={p.budget}
+                    primaryActionLabel={isActive ? "Open Active Workflow →" : "Select Case →"}
+                    onPrimaryAction={async () => {
+                      if (!isActive) await loadScenario(p.index);
+                      router.push("/requirements");
+                    }}
+                    secondaryActionLabel="Evidence Locker"
+                    onSecondaryAction={() => router.push("/evidence")}
+                  />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="gov-card overflow-hidden">
@@ -119,29 +111,35 @@ export default function ProblemsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id}>
-                    <td className="record-id font-bold">PRB-MH-2026-{p.id}</td>
-                    <td>
-                      <p className="font-bold text-[#00008B] text-xs">{p.title}</p>
-                      <p className="text-[10px] text-[#475569]">{p.domain}</p>
-                    </td>
-                    <td className="text-xs">{p.department}</td>
-                    <td className="text-xs">{p.location}</td>
-                    <td className="text-xs font-semibold">{p.budget}</td>
-                    <td>
-                      <Badge tone={p.id === "1042" ? "success" : "neutral"}>{p.status}</Badge>
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => router.push(p.id === "1042" ? "/requirements" : "/problems")}
-                        className="text-xs font-bold text-[#00008B] hover:underline"
-                      >
-                        View Details →
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((p) => {
+                  const isActive = selectedCaseId === p.display_id;
+                  return (
+                    <tr key={p.id} className={isActive ? "bg-blue-50/50 font-medium" : ""}>
+                      <td className="record-id font-bold">{p.display_id}</td>
+                      <td>
+                        <p className="font-bold text-[#00008B] text-xs">{p.title}</p>
+                        <p className="text-[10px] text-[#475569]">{p.domain} · {p.technology}</p>
+                      </td>
+                      <td className="text-xs">{p.department}</td>
+                      <td className="text-xs">{p.location}</td>
+                      <td className="text-xs font-semibold">{p.budget}</td>
+                      <td>
+                        <Badge tone={isActive ? "success" : "neutral"}>{isActive ? "ACTIVE CASE" : p.status}</Badge>
+                      </td>
+                      <td>
+                        <button
+                          onClick={async () => {
+                            if (!isActive) await loadScenario(p.index);
+                            router.push("/requirements");
+                          }}
+                          className="text-xs font-bold text-[#00008B] hover:underline cursor-pointer"
+                        >
+                          {isActive ? "Open Case →" : "Select Case →"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -149,8 +147,8 @@ export default function ProblemsPage() {
       ) : (
         <Panel title="No Government Challenges Found" icon={<FileText size={14} />}>
           <Empty
-            text={search ? `No problems matching "${search}".` : "Load the Hero Scenario from the Dashboard to see Problem #1042, or create a new challenge using the intake form."}
-            action={search ? "Clear search" : "Go to Dashboard → Load Hero Scenario"}
+            text={search ? `No problems matching "${search}".` : "No problems found."}
+            action={search ? "Clear search" : undefined}
           />
         </Panel>
       )}
