@@ -39,6 +39,7 @@ export default function DashboardPage() {
     user,
     problem, requirement, recommendations, pilot, readiness, decision, handoff,
     health, loading, error, currentStage, audit,
+    activeScenarioIndex, activeScenario, demoScenarios, loadScenario, resetDemo,
     launchDemo, structure, approve, matchStartups, shortlist, fastForward, calculateReadiness,
     implementation, monitoring, riskRadar,
   } = usePraman();
@@ -57,9 +58,9 @@ export default function DashboardPage() {
 
   /* Dynamic Next Best Step Decision Action */
   const actionRequired = !problem
-    ? { title: "Load Hero Scenario to Begin Procurement", desc: "Initialize the Pune Road Damage AI procurement workflow.", cta: "Load Hero Scenario", action: launchDemo, href: null }
+    ? { title: "Load Hero Scenario to Begin Procurement", desc: "Initialize one of 4 live government procurement demo workflows.", cta: "Load Hero Scenario →", action: launchDemo, href: null }
     : !requirement
-    ? { title: "Structure Requirements for PRB-MH-2026-1042", desc: "Convert problem statement into measurable technical KPIs using PRAMAN AI engine.", cta: "Structure Requirements", action: structure, href: "/requirements" }
+    ? { title: `Structure Requirements for ${problem.display_id || problem.id}`, desc: "Convert problem statement into measurable technical KPIs using PRAMAN AI engine.", cta: "Structure Requirements", action: structure, href: "/requirements" }
     : requirement.status !== "Approved"
     ? { title: "Approve Structured Requirements", desc: "Review and approve functional and non-functional requirement thresholds.", cta: "Approve Requirements", action: approve, href: "/requirements" }
     : !recommendations.length
@@ -84,13 +85,24 @@ export default function DashboardPage() {
         title="Procurement Intelligence & Case Directory"
         subtitle="Monitor active challenges, structured requirements, evaluated solutions, sandbox pilots, and evidence-based readiness."
         actions={
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-[#0B2A5B] bg-[#EEF5FC] px-2.5 py-1 rounded border border-[#D9E1EA]">
-              <ShieldCheck size={13} />
-              <span>{health?.status ?? "SYSTEM OPERATIONAL"}</span>
-            </span>
-            <Action onClick={launchDemo} label="Load Hero Scenario" icon={<Play size={13} />} size="sm" />
-            <Action onClick={launchDemo} label="Reset" icon={<RotateCcw size={13} />} variant="ghost" size="sm" />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Small Compact Demo Scenario Indicator */}
+            <div className="px-2.5 py-1 rounded border border-blue-200 bg-blue-50/90 text-left shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-blue-900">
+                  DEMO SCENARIO
+                </span>
+                <span className="text-[9px] font-mono text-blue-700 font-bold">
+                  {activeScenarioIndex >= 0 ? `Scenario ${activeScenarioIndex + 1} of ${demoScenarios.length}` : "Ready to Load"}
+                </span>
+              </div>
+              <p className="text-[11px] font-bold text-slate-900 truncate max-w-[170px]">
+                {activeScenario ? activeScenario.title : "Road Damage Detection"}
+              </p>
+            </div>
+
+            <Action onClick={launchDemo} label="Load Hero Scenario →" icon={<Play size={13} />} size="sm" />
+            <Action onClick={resetDemo} label="Reset" icon={<RotateCcw size={13} />} variant="ghost" size="sm" />
           </div>
         }
       />

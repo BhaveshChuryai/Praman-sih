@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, type Re
 import { api } from "./api";
 import type { AuditEvent, Problem, Recommendation } from "@/types/praman";
 import type { TracePayload } from "@/components/EvidenceTrace";
+import { DEMO_SCENARIOS, type DemoScenario } from "./demoScenarios";
 
 type Requirement = Record<string, any>;
 type Pilot = Record<string, any>;
@@ -53,6 +54,12 @@ interface PramanContextType {
   riskRadar: Record<string, any>[];
   decisionReplay: Record<string, any> | null;
   modelVersions: Record<string, any>[];
+  // Multi-Scenario Demo System
+  activeScenarioIndex: number;
+  activeScenario: DemoScenario | null;
+  demoScenarios: DemoScenario[];
+  loadScenario: (index: number) => Promise<void>;
+  resetDemo: () => Promise<void>;
   // Existing actions
   login: () => Promise<void>;
   launchDemo: () => Promise<void>;
@@ -187,24 +194,76 @@ export function PramanProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  async function launchDemo() {
-    await run("Launching judge demo", async () => {
-      await api("/api/v1/demo/reset", { method: "POST" });
-      const h = await api<Record<string, any>>("/api/v1/health");
-      const problems = await api<{ items: Problem[] }>("/api/v1/problems");
-      setHealth(h);
-      setProblem(problems.items[0]);
-      setRequirement(null);
-      setRecommendations([]);
-      setPilot(null);
-      setReadiness(null);
+  // ── Multi-Scenario Demo System ───────────────────────────────────────────
+  const [activeScenarioIndex, setActiveScenarioIndex] = useState<number>(-1);
+
+  const activeScenario = useMemo(() => {
+    if (activeScenarioIndex >= 0 && activeScenarioIndex < DEMO_SCENARIOS.length) {
+      return DEMO_SCENARIOS[activeScenarioIndex];
+    }
+    return null;
+  }, [activeScenarioIndex]);
+
+  async function loadScenario(index: number) {
+    const clampedIndex = Math.max(0, Math.min(index, DEMO_SCENARIOS.length - 1));
+    const sc = DEMO_SCENARIOS[clampedIndex];
+    setActiveScenarioIndex(clampedIndex);
+
+    await run(`Loading Scenario ${clampedIndex + 1} of ${DEMO_SCENARIOS.length}: ${sc.title}`, async () => {
+      // Gracefully attempt backend reset if server is live
+      await api("/api/v1/demo/reset", { method: "POST" }).catch(() => null);
+      const h = await api<Record<string, any>>("/api/v1/health").catch(() => null);
+      if (h) setHealth(h);
+
+      // Coherently sync scenario slices
+      setProblem({
+        id: sc.id,
+        display_id: sc.display_id,
+        title: sc.title,
+        department: sc.department,
+        location: sc.location,
+        narrative: sc.narrative,
+        budget: sc.budget,
+        timeline_days: sc.timeline_days,
+        core_kpi: sc.core_kpi,
+        constraint: sc.constraint,
+        domain: sc.domain,
+        technology: sc.technology,
+        supporting: [],
+        deployment: sc.deployment,
+        security: sc.security,
+        status: sc.status,
+        data_class: sc.data_class,
+      });
+      setRequirement(sc.requirement);
+      setRecommendations(sc.recommendations);
+      setPilot(sc.pilot);
+      setReadiness(sc.readiness);
       setDecision(null);
       setHandoff(null);
-      const scaleResult = await api<Record<string, any>>("/api/v1/scale-recommendations/startup-skyline");
-      setScale(scaleResult);
-      // Load all new module data
+      setScale(sc.scale);
+
+      // Load supporting modules
       await loadAllModuleDataInternal();
     });
+  }
+
+  async function launchDemo() {
+    const nextIndex = activeScenarioIndex === -1 ? 0 : (activeScenarioIndex + 1) % DEMO_SCENARIOS.length;
+    await loadScenario(nextIndex);
+  }
+
+  async function resetDemo() {
+    setActiveScenarioIndex(-1);
+    setProblem(null);
+    setRequirement(null);
+    setRecommendations([]);
+    setPilot(null);
+    setReadiness(null);
+    setDecision(null);
+    setHandoff(null);
+    setScale(null);
+    await api("/api/v1/demo/reset", { method: "POST" }).catch(() => null);
   }
 
   async function loadAllModuleDataInternal() {
@@ -371,6 +430,12 @@ export function PramanProvider({ children }: { children: ReactNode }) {
         decisionReason, setDecisionReason, decision, handoff, scale,
         audit, health, trace, setTrace, loading, error, currentStage,
         authInitialized,
+        // Multi-Scenario Demo System
+        activeScenarioIndex,
+        activeScenario,
+        demoScenarios: DEMO_SCENARIOS,
+        loadScenario,
+        resetDemo,
         // New state
         implementation, monitoring, outcome, lessons, memory,
         memorySearchQuery, setMemorySearchQuery,
